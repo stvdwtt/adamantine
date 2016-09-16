@@ -18,6 +18,7 @@ var searchData=
   ['_5fjfnk',['_jfnk',['../classadamantine_1_1_implicit_operator.html#a38d4debfbe09a91b65aa6cbe18106077',1,'adamantine::ImplicitOperator']]],
   ['_5fmaterial_5fproperties',['_material_properties',['../classadamantine_1_1_thermal_operator.html#a4bcce5b5d254ce4596d07aae21584d5f',1,'adamantine::ThermalOperator::_material_properties()'],['../classadamantine_1_1_thermal_physics.html#a02a2eee8c277a116916d34f9a7218768',1,'adamantine::ThermalPhysics::_material_properties()']]],
   ['_5fmatrix_5ffree',['_matrix_free',['../classadamantine_1_1_thermal_operator.html#addcbca376b8bbc325d79f71c3dc3154d',1,'adamantine::ThermalOperator']]],
+  ['_5fmatrix_5ffree_5fdata',['_matrix_free_data',['../classadamantine_1_1_thermal_operator.html#ad93948ef69e5d5483bac4b6edd5cf89a',1,'adamantine::ThermalOperator']]],
   ['_5fmax_5fheight',['_max_height',['../classadamantine_1_1_electron_beam.html#a35eecb8e539c5ff38ee3c3e703c21822',1,'adamantine::ElectronBeam::_max_height()'],['../classadamantine_1_1_geometry.html#a41d9af0f91f79e0b9702c70d420331b7',1,'adamantine::Geometry::_max_height()']]],
   ['_5fmax_5fiter',['_max_iter',['../classadamantine_1_1_thermal_physics.html#a5fa9d745602a093edf41f6ab3870fd49',1,'adamantine::ThermalPhysics']]],
   ['_5fmax_5fn_5ftmp_5fvectors',['_max_n_tmp_vectors',['../classadamantine_1_1_thermal_physics.html#a1eda6405bf010fe8bc5567adcc56d1fe',1,'adamantine::ThermalPhysics']]],

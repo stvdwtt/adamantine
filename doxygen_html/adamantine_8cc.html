@@ -96,6 +96,10 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <code>#include &quot;<a class="el" href="_thermal_physics_8hh_source.html">ThermalPhysics.hh</a>&quot;</code><br />
 <code>#include &quot;<a class="el" href="utils_8hh_source.html">utils.hh</a>&quot;</code><br />
 <code>#include &lt;deal.II/base/mpi.h&gt;</code><br />
+<code>#include &lt;deal.II/distributed/solution_transfer.h&gt;</code><br />
+<code>#include &lt;deal.II/grid/filtered_iterator.h&gt;</code><br />
+<code>#include &lt;deal.II/grid/grid_refinement.h&gt;</code><br />
+<code>#include &lt;deal.II/numerics/error_estimator.h&gt;</code><br />
 <code>#include &lt;boost/filesystem.hpp&gt;</code><br />
 <code>#include &lt;boost/mpi.hpp&gt;</code><br />
 <code>#include &lt;boost/program_options.hpp&gt;</code><br />
@@ -108,30 +112,90 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
-<tr class="memitem:a3951cf4951d352e3fe64a4f071a54821"><td class="memTemplParams" colspan="2">template&lt;int dim, int fe_degree, typename QuadratureType &gt; </td></tr>
-<tr class="memitem:a3951cf4951d352e3fe64a4f071a54821"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="adamantine_8cc.html#a3951cf4951d352e3fe64a4f071a54821">initialize</a> (boost::mpi::communicator const &amp;communicator, boost::property_tree::ptree const &amp;database, <a class="el" href="classadamantine_1_1_geometry.html">adamantine::Geometry</a>&lt; dim &gt; &amp;geometry, std::unique_ptr&lt; <a class="el" href="classadamantine_1_1_physics.html">adamantine::Physics</a>&lt; dim, double &gt;&gt; &amp;thermal_physics)</td></tr>
-<tr class="separator:a3951cf4951d352e3fe64a4f071a54821"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a0befd823904177be612cadf0120e6e4f"><td class="memTemplParams" colspan="2">template&lt;int dim, int fe_degree&gt; </td></tr>
-<tr class="memitem:a0befd823904177be612cadf0120e6e4f"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="adamantine_8cc.html#a0befd823904177be612cadf0120e6e4f">initialize_quadrature</a> (std::string const &amp;quadrature_type, boost::mpi::communicator const &amp;communicator, boost::property_tree::ptree const &amp;database, <a class="el" href="classadamantine_1_1_geometry.html">adamantine::Geometry</a>&lt; dim &gt; &amp;geometry, std::unique_ptr&lt; <a class="el" href="classadamantine_1_1_physics.html">adamantine::Physics</a>&lt; dim, double &gt;&gt; &amp;thermal_physics)</td></tr>
-<tr class="separator:a0befd823904177be612cadf0120e6e4f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7f49e99a22751267a78961fdf6441294"><td class="memTemplParams" colspan="2">template&lt;int dim&gt; </td></tr>
-<tr class="memitem:a7f49e99a22751267a78961fdf6441294"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="adamantine_8cc.html#a7f49e99a22751267a78961fdf6441294">initialize_thermal_physics</a> (unsigned int fe_degree, std::string const &amp;quadrature_type, boost::mpi::communicator const &amp;communicator, boost::property_tree::ptree const &amp;database, <a class="el" href="classadamantine_1_1_geometry.html">adamantine::Geometry</a>&lt; dim &gt; &amp;geometry, std::unique_ptr&lt; <a class="el" href="classadamantine_1_1_physics.html">adamantine::Physics</a>&lt; dim, double &gt;&gt; &amp;thermal_physics)</td></tr>
-<tr class="separator:a7f49e99a22751267a78961fdf6441294"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab671249cf1097cda2d0bc00eecaa0803"><td class="memTemplParams" colspan="2">template&lt;int dim&gt; </td></tr>
-<tr class="memitem:ab671249cf1097cda2d0bc00eecaa0803"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="adamantine_8cc.html#ab671249cf1097cda2d0bc00eecaa0803">run</a> (boost::mpi::communicator const &amp;communicator, std::unique_ptr&lt; <a class="el" href="classadamantine_1_1_physics.html">adamantine::Physics</a>&lt; dim, double &gt;&gt; &amp;thermal_physics, <a class="el" href="classadamantine_1_1_post_processor.html">adamantine::PostProcessor</a>&lt; dim &gt; &amp;post_processor, boost::property_tree::ptree const &amp;time_stepping_database)</td></tr>
-<tr class="separator:ab671249cf1097cda2d0bc00eecaa0803"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a10db1e5ff8629931c8b34b81ff8224f1"><td class="memTemplParams" colspan="2">template&lt;int dim, int fe_degree, typename QuadratureType &gt; </td></tr>
+<tr class="memitem:a10db1e5ff8629931c8b34b81ff8224f1"><td class="memTemplItemLeft" align="right" valign="top">std::vector&lt; std::unique_ptr&lt; <a class="el" href="classadamantine_1_1_electron_beam.html">adamantine::ElectronBeam</a>&lt; dim &gt; &gt; &gt; &amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="adamantine_8cc.html#a10db1e5ff8629931c8b34b81ff8224f1">initialize</a> (boost::mpi::communicator const &amp;communicator, boost::property_tree::ptree const &amp;database, <a class="el" href="classadamantine_1_1_geometry.html">adamantine::Geometry</a>&lt; dim &gt; &amp;geometry, std::unique_ptr&lt; <a class="el" href="classadamantine_1_1_physics.html">adamantine::Physics</a>&lt; dim, double &gt;&gt; &amp;thermal_physics)</td></tr>
+<tr class="separator:a10db1e5ff8629931c8b34b81ff8224f1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad2f347d869d1a7aa53015eb0beb21254"><td class="memTemplParams" colspan="2">template&lt;int dim, int fe_degree&gt; </td></tr>
+<tr class="memitem:ad2f347d869d1a7aa53015eb0beb21254"><td class="memTemplItemLeft" align="right" valign="top">std::vector&lt; std::unique_ptr&lt; <a class="el" href="classadamantine_1_1_electron_beam.html">adamantine::ElectronBeam</a>&lt; dim &gt; &gt; &gt; &amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="adamantine_8cc.html#ad2f347d869d1a7aa53015eb0beb21254">initialize_quadrature</a> (std::string const &amp;quadrature_type, boost::mpi::communicator const &amp;communicator, boost::property_tree::ptree const &amp;database, <a class="el" href="classadamantine_1_1_geometry.html">adamantine::Geometry</a>&lt; dim &gt; &amp;geometry, std::unique_ptr&lt; <a class="el" href="classadamantine_1_1_physics.html">adamantine::Physics</a>&lt; dim, double &gt;&gt; &amp;thermal_physics)</td></tr>
+<tr class="separator:ad2f347d869d1a7aa53015eb0beb21254"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab9e81483050d9357d7012a3a117bcb0e"><td class="memTemplParams" colspan="2">template&lt;int dim&gt; </td></tr>
+<tr class="memitem:ab9e81483050d9357d7012a3a117bcb0e"><td class="memTemplItemLeft" align="right" valign="top">std::vector&lt; std::unique_ptr&lt; <a class="el" href="classadamantine_1_1_electron_beam.html">adamantine::ElectronBeam</a>&lt; dim &gt; &gt; &gt; &amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="adamantine_8cc.html#ab9e81483050d9357d7012a3a117bcb0e">initialize_thermal_physics</a> (unsigned int fe_degree, std::string const &amp;quadrature_type, boost::mpi::communicator const &amp;communicator, boost::property_tree::ptree const &amp;database, <a class="el" href="classadamantine_1_1_geometry.html">adamantine::Geometry</a>&lt; dim &gt; &amp;geometry, std::unique_ptr&lt; <a class="el" href="classadamantine_1_1_physics.html">adamantine::Physics</a>&lt; dim, double &gt;&gt; &amp;thermal_physics)</td></tr>
+<tr class="separator:ab9e81483050d9357d7012a3a117bcb0e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa33345ff18c569fe176df9836753bbd6"><td class="memTemplParams" colspan="2">template&lt;int dim&gt; </td></tr>
+<tr class="memitem:aa33345ff18c569fe176df9836753bbd6"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="adamantine_8cc.html#aa33345ff18c569fe176df9836753bbd6">refine_and_transfer</a> (std::unique_ptr&lt; <a class="el" href="classadamantine_1_1_physics.html">adamantine::Physics</a>&lt; dim, double &gt;&gt; &amp;thermal_physics, dealii::DoFHandler&lt; dim &gt; &amp;dof_handler, dealii::LA::distributed::Vector&lt; double &gt; &amp;solution)</td></tr>
+<tr class="separator:aa33345ff18c569fe176df9836753bbd6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3424078b20bf30c463e52cd5b103e04d"><td class="memTemplParams" colspan="2">template&lt;int dim&gt; </td></tr>
+<tr class="memitem:a3424078b20bf30c463e52cd5b103e04d"><td class="memTemplItemLeft" align="right" valign="top">std::vector&lt; typename dealii::parallel::distributed::Triangulation&lt; dim &gt;::active_cell_iterator &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="adamantine_8cc.html#a3424078b20bf30c463e52cd5b103e04d">compute_cells_to_refine</a> (dealii::parallel::distributed::Triangulation&lt; dim &gt; &amp;triangulation, double const time, double const next_refinement_time, unsigned int const n_time_steps, std::vector&lt; std::unique_ptr&lt; <a class="el" href="classadamantine_1_1_electron_beam.html">adamantine::ElectronBeam</a>&lt; dim &gt;&gt;&gt; &amp;electron_beams)</td></tr>
+<tr class="separator:a3424078b20bf30c463e52cd5b103e04d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a965b31bbddb5fa55fe3f474b4204b39b"><td class="memTemplParams" colspan="2">template&lt;int dim, int fe_degree&gt; </td></tr>
+<tr class="memitem:a965b31bbddb5fa55fe3f474b4204b39b"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="adamantine_8cc.html#a965b31bbddb5fa55fe3f474b4204b39b">refine_mesh</a> (std::unique_ptr&lt; <a class="el" href="classadamantine_1_1_physics.html">adamantine::Physics</a>&lt; dim, double &gt;&gt; &amp;thermal_physics, dealii::LA::distributed::Vector&lt; double &gt; &amp;solution, std::vector&lt; std::unique_ptr&lt; <a class="el" href="classadamantine_1_1_electron_beam.html">adamantine::ElectronBeam</a>&lt; dim &gt;&gt;&gt; &amp;electron_beams, double const time, double const next_refinement_time, unsigned int const time_steps_refinement, boost::property_tree::ptree const &amp;refinement_database)</td></tr>
+<tr class="separator:a965b31bbddb5fa55fe3f474b4204b39b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a552b13d6f206514fa8fb08da165b4573"><td class="memTemplParams" colspan="2">template&lt;int dim&gt; </td></tr>
+<tr class="memitem:a552b13d6f206514fa8fb08da165b4573"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="adamantine_8cc.html#a552b13d6f206514fa8fb08da165b4573">refine_mesh</a> (std::unique_ptr&lt; <a class="el" href="classadamantine_1_1_physics.html">adamantine::Physics</a>&lt; dim, double &gt;&gt; &amp;thermal_physics, dealii::LA::distributed::Vector&lt; double &gt; &amp;solution, std::vector&lt; std::unique_ptr&lt; <a class="el" href="classadamantine_1_1_electron_beam.html">adamantine::ElectronBeam</a>&lt; dim &gt;&gt;&gt; &amp;electron_beams, double const time, double const next_refinement_time, unsigned int const time_steps_refinement, boost::property_tree::ptree const &amp;refinement_database, unsigned int const fe_degree)</td></tr>
+<tr class="separator:a552b13d6f206514fa8fb08da165b4573"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae7c25b50507868b1f83213694171ad73"><td class="memTemplParams" colspan="2">template&lt;int dim&gt; </td></tr>
+<tr class="memitem:ae7c25b50507868b1f83213694171ad73"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="adamantine_8cc.html#ae7c25b50507868b1f83213694171ad73">run</a> (boost::mpi::communicator const &amp;communicator, std::unique_ptr&lt; <a class="el" href="classadamantine_1_1_physics.html">adamantine::Physics</a>&lt; dim, double &gt;&gt; &amp;thermal_physics, <a class="el" href="classadamantine_1_1_post_processor.html">adamantine::PostProcessor</a>&lt; dim &gt; &amp;post_processor, std::vector&lt; std::unique_ptr&lt; <a class="el" href="classadamantine_1_1_electron_beam.html">adamantine::ElectronBeam</a>&lt; dim &gt;&gt;&gt; &amp;electron_beams, boost::property_tree::ptree const &amp;time_stepping_database, boost::property_tree::ptree const &amp;refinement_database, unsigned int const fe_degree)</td></tr>
+<tr class="separator:ae7c25b50507868b1f83213694171ad73"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0ddf1224851353fc92bfbff6f499fa97"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="adamantine_8cc.html#a0ddf1224851353fc92bfbff6f499fa97">main</a> (int argc, char *argv[])</td></tr>
 <tr class="separator:a0ddf1224851353fc92bfbff6f499fa97"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Function Documentation</h2>
-<a class="anchor" id="a3951cf4951d352e3fe64a4f071a54821"></a>
+<a class="anchor" id="a3424078b20bf30c463e52cd5b103e04d"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">std::vector&lt;typename dealii::parallel::distributed::Triangulation&lt; dim&gt;::active_cell_iterator&gt; compute_cells_to_refine </td>
+          <td>(</td>
+          <td class="paramtype">dealii::parallel::distributed::Triangulation&lt; dim &gt; &amp;&#160;</td>
+          <td class="paramname"><em>triangulation</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">double const&#160;</td>
+          <td class="paramname"><em>time</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">double const&#160;</td>
+          <td class="paramname"><em>next_refinement_time</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">unsigned int const&#160;</td>
+          <td class="paramname"><em>n_time_steps</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::vector&lt; std::unique_ptr&lt; <a class="el" href="classadamantine_1_1_electron_beam.html">adamantine::ElectronBeam</a>&lt; dim &gt;&gt;&gt; &amp;&#160;</td>
+          <td class="paramname"><em>electron_beams</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="adamantine_8cc_source.html#l00160">160</a> of file <a class="el" href="adamantine_8cc_source.html">adamantine.cc</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a10db1e5ff8629931c8b34b81ff8224f1"></a>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
 template&lt;int dim, int fe_degree, typename QuadratureType &gt; </div>
       <table class="memname">
         <tr>
-          <td class="memname">void initialize </td>
+          <td class="memname">std::vector&lt;std::unique_ptr&lt;<a class="el" href="classadamantine_1_1_electron_beam.html">adamantine::ElectronBeam</a>&lt;dim&gt; &gt; &gt;&amp; initialize </td>
           <td>(</td>
           <td class="paramtype">boost::mpi::communicator const &amp;&#160;</td>
           <td class="paramname"><em>communicator</em>, </td>
@@ -162,18 +226,18 @@ template&lt;int dim, int fe_degree, typename QuadratureType &gt; </div>
       </table>
 </div><div class="memdoc">
 
-<p>Definition at line <a class="el" href="adamantine_8cc_source.html#l00022">22</a> of file <a class="el" href="adamantine_8cc_source.html">adamantine.cc</a>.</p>
+<p>Definition at line <a class="el" href="adamantine_8cc_source.html#l00027">27</a> of file <a class="el" href="adamantine_8cc_source.html">adamantine.cc</a>.</p>
 
 </div>
 </div>
-<a class="anchor" id="a0befd823904177be612cadf0120e6e4f"></a>
+<a class="anchor" id="ad2f347d869d1a7aa53015eb0beb21254"></a>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
 template&lt;int dim, int fe_degree&gt; </div>
       <table class="memname">
         <tr>
-          <td class="memname">void initialize_quadrature </td>
+          <td class="memname">std::vector&lt;std::unique_ptr&lt;<a class="el" href="classadamantine_1_1_electron_beam.html">adamantine::ElectronBeam</a>&lt;dim&gt; &gt; &gt;&amp; initialize_quadrature </td>
           <td>(</td>
           <td class="paramtype">std::string const &amp;&#160;</td>
           <td class="paramname"><em>quadrature_type</em>, </td>
@@ -210,18 +274,18 @@ template&lt;int dim, int fe_degree&gt; </div>
       </table>
 </div><div class="memdoc">
 
-<p>Definition at line <a class="el" href="adamantine_8cc_source.html#l00034">34</a> of file <a class="el" href="adamantine_8cc_source.html">adamantine.cc</a>.</p>
+<p>Definition at line <a class="el" href="adamantine_8cc_source.html#l00043">43</a> of file <a class="el" href="adamantine_8cc_source.html">adamantine.cc</a>.</p>
 
 </div>
 </div>
-<a class="anchor" id="a7f49e99a22751267a78961fdf6441294"></a>
+<a class="anchor" id="ab9e81483050d9357d7012a3a117bcb0e"></a>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
 template&lt;int dim&gt; </div>
       <table class="memname">
         <tr>
-          <td class="memname">void initialize_thermal_physics </td>
+          <td class="memname">std::vector&lt;std::unique_ptr&lt;<a class="el" href="classadamantine_1_1_electron_beam.html">adamantine::ElectronBeam</a>&lt;dim&gt; &gt; &gt;&amp; initialize_thermal_physics </td>
           <td>(</td>
           <td class="paramtype">unsigned int&#160;</td>
           <td class="paramname"><em>fe_degree</em>, </td>
@@ -264,7 +328,7 @@ template&lt;int dim&gt; </div>
       </table>
 </div><div class="memdoc">
 
-<p>Definition at line <a class="el" href="adamantine_8cc_source.html#l00052">52</a> of file <a class="el" href="adamantine_8cc_source.html">adamantine.cc</a>.</p>
+<p>Definition at line <a class="el" href="adamantine_8cc_source.html#l00064">64</a> of file <a class="el" href="adamantine_8cc_source.html">adamantine.cc</a>.</p>
 
 </div>
 </div>
@@ -292,11 +356,173 @@ template&lt;int dim&gt; </div>
       </table>
 </div><div class="memdoc">
 
-<p>Definition at line <a class="el" href="adamantine_8cc_source.html#l00190">190</a> of file <a class="el" href="adamantine_8cc_source.html">adamantine.cc</a>.</p>
+<p>Definition at line <a class="el" href="adamantine_8cc_source.html#l00435">435</a> of file <a class="el" href="adamantine_8cc_source.html">adamantine.cc</a>.</p>
 
 </div>
 </div>
-<a class="anchor" id="ab671249cf1097cda2d0bc00eecaa0803"></a>
+<a class="anchor" id="aa33345ff18c569fe176df9836753bbd6"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">void refine_and_transfer </td>
+          <td>(</td>
+          <td class="paramtype">std::unique_ptr&lt; <a class="el" href="classadamantine_1_1_physics.html">adamantine::Physics</a>&lt; dim, double &gt;&gt; &amp;&#160;</td>
+          <td class="paramname"><em>thermal_physics</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">dealii::DoFHandler&lt; dim &gt; &amp;&#160;</td>
+          <td class="paramname"><em>dof_handler</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">dealii::LA::distributed::Vector&lt; double &gt; &amp;&#160;</td>
+          <td class="paramname"><em>solution</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="adamantine_8cc_source.html#l00129">129</a> of file <a class="el" href="adamantine_8cc_source.html">adamantine.cc</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a965b31bbddb5fa55fe3f474b4204b39b"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim, int fe_degree&gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">void refine_mesh </td>
+          <td>(</td>
+          <td class="paramtype">std::unique_ptr&lt; <a class="el" href="classadamantine_1_1_physics.html">adamantine::Physics</a>&lt; dim, double &gt;&gt; &amp;&#160;</td>
+          <td class="paramname"><em>thermal_physics</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">dealii::LA::distributed::Vector&lt; double &gt; &amp;&#160;</td>
+          <td class="paramname"><em>solution</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::vector&lt; std::unique_ptr&lt; <a class="el" href="classadamantine_1_1_electron_beam.html">adamantine::ElectronBeam</a>&lt; dim &gt;&gt;&gt; &amp;&#160;</td>
+          <td class="paramname"><em>electron_beams</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">double const&#160;</td>
+          <td class="paramname"><em>time</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">double const&#160;</td>
+          <td class="paramname"><em>next_refinement_time</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">unsigned int const&#160;</td>
+          <td class="paramname"><em>time_steps_refinement</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">boost::property_tree::ptree const &amp;&#160;</td>
+          <td class="paramname"><em>refinement_database</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="adamantine_8cc_source.html#l00194">194</a> of file <a class="el" href="adamantine_8cc_source.html">adamantine.cc</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a552b13d6f206514fa8fb08da165b4573"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">void refine_mesh </td>
+          <td>(</td>
+          <td class="paramtype">std::unique_ptr&lt; <a class="el" href="classadamantine_1_1_physics.html">adamantine::Physics</a>&lt; dim, double &gt;&gt; &amp;&#160;</td>
+          <td class="paramname"><em>thermal_physics</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">dealii::LA::distributed::Vector&lt; double &gt; &amp;&#160;</td>
+          <td class="paramname"><em>solution</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::vector&lt; std::unique_ptr&lt; <a class="el" href="classadamantine_1_1_electron_beam.html">adamantine::ElectronBeam</a>&lt; dim &gt;&gt;&gt; &amp;&#160;</td>
+          <td class="paramname"><em>electron_beams</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">double const&#160;</td>
+          <td class="paramname"><em>time</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">double const&#160;</td>
+          <td class="paramname"><em>next_refinement_time</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">unsigned int const&#160;</td>
+          <td class="paramname"><em>time_steps_refinement</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">boost::property_tree::ptree const &amp;&#160;</td>
+          <td class="paramname"><em>refinement_database</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">unsigned int const&#160;</td>
+          <td class="paramname"><em>fe_degree</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="adamantine_8cc_source.html#l00266">266</a> of file <a class="el" href="adamantine_8cc_source.html">adamantine.cc</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="ae7c25b50507868b1f83213694171ad73"></a>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
@@ -323,8 +549,26 @@ template&lt;int dim&gt; </div>
         <tr>
           <td class="paramkey"></td>
           <td></td>
+          <td class="paramtype">std::vector&lt; std::unique_ptr&lt; <a class="el" href="classadamantine_1_1_electron_beam.html">adamantine::ElectronBeam</a>&lt; dim &gt;&gt;&gt; &amp;&#160;</td>
+          <td class="paramname"><em>electron_beams</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
           <td class="paramtype">boost::property_tree::ptree const &amp;&#160;</td>
-          <td class="paramname"><em>time_stepping_database</em>&#160;</td>
+          <td class="paramname"><em>time_stepping_database</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">boost::property_tree::ptree const &amp;&#160;</td>
+          <td class="paramname"><em>refinement_database</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">unsigned int const&#160;</td>
+          <td class="paramname"><em>fe_degree</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -334,7 +578,7 @@ template&lt;int dim&gt; </div>
       </table>
 </div><div class="memdoc">
 
-<p>Definition at line <a class="el" href="adamantine_8cc_source.html#l00139">139</a> of file <a class="el" href="adamantine_8cc_source.html">adamantine.cc</a>.</p>
+<p>Definition at line <a class="el" href="adamantine_8cc_source.html#l00355">355</a> of file <a class="el" href="adamantine_8cc_source.html">adamantine.cc</a>.</p>
 
 </div>
 </div>

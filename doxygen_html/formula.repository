@@ -1,13 +1,11 @@
-\form#0:$I-\tau M^{-1} \frac{F}{dy}$
-\form#1:$ dst = -\nabla k \nabla src $
-\form#2:$[0,1]$
-\form#3:$[0,\infty[$
-\form#4:$[0, \infty[$
-\form#5:$[0,\infty)$
-\form#6:$[0, \infty)$
-\form#7:$[1,\infty)$
-\form#8:$(0,\infty)$
-\form#9:$F$
-\form#10:$\tau$
-\form#11:$(0,1)$
-\form#12:$(0, \infty)$
+\form#0:$[0,1]$
+\form#1:$[0,\infty)$
+\form#2:$[0, \infty)$
+\form#3:$[1,\infty)$
+\form#4:$(0,\infty)$
+\form#5:$F$
+\form#6:$I-\tau M^{-1} \frac{F}{dy}$
+\form#7:$\tau$
+\form#8:$ dst = -\nabla k \nabla src $
+\form#9:$(0,1)$
+\form#10:$(0, \infty)$

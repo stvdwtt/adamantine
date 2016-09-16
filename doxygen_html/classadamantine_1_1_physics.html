@@ -112,6 +112,8 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:a62a4aec566c336a7b79fe69f0bdfae9d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2937887bb0e32ddec9dee713d900932f"><td class="memItemLeft" align="right" valign="top">virtual&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_physics.html#a2937887bb0e32ddec9dee713d900932f">~Physics</a> ()=default</td></tr>
 <tr class="separator:a2937887bb0e32ddec9dee713d900932f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa33f4bc8fcff6e37ce754ed9ddb5ef0d"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_physics.html#aa33f4bc8fcff6e37ce754ed9ddb5ef0d">setup_dofs</a> ()=0</td></tr>
+<tr class="separator:aa33f4bc8fcff6e37ce754ed9ddb5ef0d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1942fa0b937073d568ecace16dd80b3a"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_physics.html#a1942fa0b937073d568ecace16dd80b3a">reinit</a> ()=0</td></tr>
 <tr class="separator:a1942fa0b937073d568ecace16dd80b3a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a62dac7d4adad705d414c22ad45f9efe3"><td class="memItemLeft" align="right" valign="top">virtual double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_physics.html#a62dac7d4adad705d414c22ad45f9efe3">evolve_one_time_step</a> (double t, double delta_t, dealii::LA::distributed::Vector&lt; NumberType &gt; &amp;solution)=0</td></tr>
@@ -122,6 +124,8 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:ad2c34f2834018516adb6bf6f99089b16"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9af6d2b85db5096856c28677faea27ad"><td class="memItemLeft" align="right" valign="top">virtual dealii::DoFHandler&lt; dim &gt; &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_physics.html#a9af6d2b85db5096856c28677faea27ad">get_dof_handler</a> ()=0</td></tr>
 <tr class="separator:a9af6d2b85db5096856c28677faea27ad"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a14d3ade84e9c86144cc26fa0045a0475"><td class="memItemLeft" align="right" valign="top">virtual dealii::ConstraintMatrix &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_physics.html#a14d3ade84e9c86144cc26fa0045a0475">get_constraint_matrix</a> ()=0</td></tr>
+<tr class="separator:a14d3ade84e9c86144cc26fa0045a0475"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><h3>template&lt;int dim, typename NumberType&gt;<br />
@@ -129,7 +133,7 @@ class adamantine::Physics&lt; dim, NumberType &gt;</h3>
 
 <p>This class defines the inteface that every physics needs to implement. </p>
 
-<p>Definition at line <a class="el" href="_physics_8hh_source.html#l00021">21</a> of file <a class="el" href="_physics_8hh_source.html">Physics.hh</a>.</p>
+<p>Definition at line <a class="el" href="_physics_8hh_source.html#l00022">22</a> of file <a class="el" href="_physics_8hh_source.html">Physics.hh</a>.</p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a class="anchor" id="a62a4aec566c336a7b79fe69f0bdfae9d"></a>
 <div class="memitem">
@@ -221,9 +225,37 @@ template&lt;int dim, typename NumberType &gt; </div>
   </tr>
 </table>
 </div><div class="memdoc">
-<p>Evolve the physics from time t to time t+delta_t. solution first contains the field at time t and after execution of the function, the field at time t+delta_t </p>
+<p>Evolve the physics from time t to time t+delta_t. solution first contains the field at time t and after execution of the function, the field at time t+delta_t. </p>
 
 <p>Implemented in <a class="el" href="classadamantine_1_1_thermal_physics.html#a137115eb4f11e897188d0a3f9f64c2b9">adamantine::ThermalPhysics&lt; dim, fe_degree, NumberType, QuadratureType &gt;</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a14d3ade84e9c86144cc26fa0045a0475"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim, typename NumberType &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual dealii::ConstraintMatrix&amp; <a class="el" href="classadamantine_1_1_physics.html">adamantine::Physics</a>&lt; dim, NumberType &gt;::get_constraint_matrix </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">pure virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Return the ConstraintMatrix. </p>
+
+<p>Implemented in <a class="el" href="classadamantine_1_1_thermal_physics.html#aea413d5828b65aa2fef1df981890a6dc">adamantine::ThermalPhysics&lt; dim, fe_degree, NumberType, QuadratureType &gt;</a>.</p>
 
 </div>
 </div>
@@ -334,9 +366,37 @@ template&lt;int dim, typename NumberType &gt; </div>
   </tr>
 </table>
 </div><div class="memdoc">
-<p>Reinitalize the physics and the associated operator. </p>
+<p>Reinitialize the physics and the associated operator. </p>
 
 <p>Implemented in <a class="el" href="classadamantine_1_1_thermal_physics.html#a8f29b0a7287193be495fcdbbd2b1bdc7">adamantine::ThermalPhysics&lt; dim, fe_degree, NumberType, QuadratureType &gt;</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="aa33f4bc8fcff6e37ce754ed9ddb5ef0d"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim, typename NumberType &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual void <a class="el" href="classadamantine_1_1_physics.html">adamantine::Physics</a>&lt; dim, NumberType &gt;::setup_dofs </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">pure virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Associate the ConstraintMatrix and the MatrixFree objects to the underlying Triangulation. </p>
+
+<p>Implemented in <a class="el" href="classadamantine_1_1_thermal_physics.html#ad49b172cf50d9c11ef7580a519e79971">adamantine::ThermalPhysics&lt; dim, fe_degree, NumberType, QuadratureType &gt;</a>.</p>
 
 </div>
 </div>
