@@ -24,12 +24,44 @@
         <h2>Installation</h2>
         <p>
         Installing adamantine requires:
-          <ul>
-            <li> CMake </li>
-            <li> Boost </li>
-            <li> p4est </li>
-            <li> deal.II </li>
-          </ul>
+        <ul>
+          <li> CMake (at least version 3.0) </li>
+          <li> Boost (at least version 1.59) </li>
+          <li> p4est (at least version 1.0) </li>
+          <li> deal.II (development version) </li>
+        </ul>
+        </p>
+        <p>The simplest way to install adamantine's TPL is to use 
+        <a href="https://github.com/llnl/spack">spack</a> and to type the 
+        following commands:
+        <ul>
+          <li> <strong> spack install boost+graph+icu+mpi </strong> </li>
+          <li> <strong> spack install
+              dealii@develop~arpack~gsl~hdf5~metis~netcdf~oce~petsc~python~slepc~trilinos+mpi 
+              ^boost+graph+icu+mpi</strong> </li>
+        </ul>
+         Once the TPLs are build, you need to need to appropriate module, i.e.
+         boost, dealii, and, if necessary, mpi.
+        </p>
+        <p>
+        To install adamantine, simply run:
+        <ul>
+          <li> <strong> cmake -DCMAKE_BUILD_TYPE=Release /path/to/adamantine
+            </strong> </li>
+            <li> <strong> make </strong> </li>
+        </ul>
+        This should create a <i>/bin</i> subdirectory with an <i>adamantine</i>
+        executable and an example of an input file <i>input.info</i>. The
+        different options accepted by cmake are:
+        <ul>
+          <li> -DCMAKE_BUILD_TYPE=Debug/Release </li>
+          <li> -DADAMANTINE_ENABLE_TESTS=ON/OFF </li>
+          <li> -DDEAL_II_DIR=/path/to/dealii </li>
+          <li> -DBOOST_DIR=/path/to/boost </li>
+        </ul>
+        Note that for all the tests to pass you also need clang-format 3.7. If
+        you don't the indentation test that checks the format of the source code 
+        will not pass.
         </p>
       </section>
     </div>
