@@ -133,9 +133,9 @@ Functions</h2></td></tr>
 <tr class="memitem:a552b13d6f206514fa8fb08da165b4573"><td class="memTemplParams" colspan="2">template&lt;int dim&gt; </td></tr>
 <tr class="memitem:a552b13d6f206514fa8fb08da165b4573"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="adamantine_8cc.html#a552b13d6f206514fa8fb08da165b4573">refine_mesh</a> (std::unique_ptr&lt; <a class="el" href="classadamantine_1_1_physics.html">adamantine::Physics</a>&lt; dim, double &gt;&gt; &amp;thermal_physics, dealii::LA::distributed::Vector&lt; double &gt; &amp;solution, std::vector&lt; std::unique_ptr&lt; <a class="el" href="classadamantine_1_1_electron_beam.html">adamantine::ElectronBeam</a>&lt; dim &gt;&gt;&gt; &amp;electron_beams, double const time, double const next_refinement_time, unsigned int const time_steps_refinement, boost::property_tree::ptree const &amp;refinement_database, unsigned int const fe_degree)</td></tr>
 <tr class="separator:a552b13d6f206514fa8fb08da165b4573"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae7c25b50507868b1f83213694171ad73"><td class="memTemplParams" colspan="2">template&lt;int dim&gt; </td></tr>
-<tr class="memitem:ae7c25b50507868b1f83213694171ad73"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="adamantine_8cc.html#ae7c25b50507868b1f83213694171ad73">run</a> (boost::mpi::communicator const &amp;communicator, std::unique_ptr&lt; <a class="el" href="classadamantine_1_1_physics.html">adamantine::Physics</a>&lt; dim, double &gt;&gt; &amp;thermal_physics, <a class="el" href="classadamantine_1_1_post_processor.html">adamantine::PostProcessor</a>&lt; dim &gt; &amp;post_processor, std::vector&lt; std::unique_ptr&lt; <a class="el" href="classadamantine_1_1_electron_beam.html">adamantine::ElectronBeam</a>&lt; dim &gt;&gt;&gt; &amp;electron_beams, boost::property_tree::ptree const &amp;time_stepping_database, boost::property_tree::ptree const &amp;refinement_database, unsigned int const fe_degree)</td></tr>
-<tr class="separator:ae7c25b50507868b1f83213694171ad73"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7593413a5d9bb5a0ba919e815dfb3b51"><td class="memTemplParams" colspan="2">template&lt;int dim&gt; </td></tr>
+<tr class="memitem:a7593413a5d9bb5a0ba919e815dfb3b51"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="adamantine_8cc.html#a7593413a5d9bb5a0ba919e815dfb3b51">run</a> (boost::mpi::communicator const &amp;communicator, std::unique_ptr&lt; <a class="el" href="classadamantine_1_1_physics.html">adamantine::Physics</a>&lt; dim, double &gt;&gt; &amp;thermal_physics, <a class="el" href="classadamantine_1_1_post_processor.html">adamantine::PostProcessor</a>&lt; dim &gt; &amp;post_processor, std::vector&lt; std::unique_ptr&lt; <a class="el" href="classadamantine_1_1_electron_beam.html">adamantine::ElectronBeam</a>&lt; dim &gt;&gt;&gt; &amp;electron_beams, boost::property_tree::ptree const &amp;time_stepping_database, boost::property_tree::ptree const &amp;refinement_database, unsigned int const fe_degree, double const initial_temperature)</td></tr>
+<tr class="separator:a7593413a5d9bb5a0ba919e815dfb3b51"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0ddf1224851353fc92bfbff6f499fa97"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="adamantine_8cc.html#a0ddf1224851353fc92bfbff6f499fa97">main</a> (int argc, char *argv[])</td></tr>
 <tr class="separator:a0ddf1224851353fc92bfbff6f499fa97"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
@@ -184,7 +184,7 @@ template&lt;int dim&gt; </div>
       </table>
 </div><div class="memdoc">
 
-<p>Definition at line <a class="el" href="adamantine_8cc_source.html#l00160">160</a> of file <a class="el" href="adamantine_8cc_source.html">adamantine.cc</a>.</p>
+<p>Definition at line <a class="el" href="adamantine_8cc_source.html#l00198">198</a> of file <a class="el" href="adamantine_8cc_source.html">adamantine.cc</a>.</p>
 
 </div>
 </div>
@@ -356,7 +356,7 @@ template&lt;int dim&gt; </div>
       </table>
 </div><div class="memdoc">
 
-<p>Definition at line <a class="el" href="adamantine_8cc_source.html#l00435">435</a> of file <a class="el" href="adamantine_8cc_source.html">adamantine.cc</a>.</p>
+<p>Definition at line <a class="el" href="adamantine_8cc_source.html#l00480">480</a> of file <a class="el" href="adamantine_8cc_source.html">adamantine.cc</a>.</p>
 
 </div>
 </div>
@@ -452,7 +452,7 @@ template&lt;int dim, int fe_degree&gt; </div>
       </table>
 </div><div class="memdoc">
 
-<p>Definition at line <a class="el" href="adamantine_8cc_source.html#l00194">194</a> of file <a class="el" href="adamantine_8cc_source.html">adamantine.cc</a>.</p>
+<p>Definition at line <a class="el" href="adamantine_8cc_source.html#l00232">232</a> of file <a class="el" href="adamantine_8cc_source.html">adamantine.cc</a>.</p>
 
 </div>
 </div>
@@ -518,11 +518,11 @@ template&lt;int dim&gt; </div>
       </table>
 </div><div class="memdoc">
 
-<p>Definition at line <a class="el" href="adamantine_8cc_source.html#l00266">266</a> of file <a class="el" href="adamantine_8cc_source.html">adamantine.cc</a>.</p>
+<p>Definition at line <a class="el" href="adamantine_8cc_source.html#l00311">311</a> of file <a class="el" href="adamantine_8cc_source.html">adamantine.cc</a>.</p>
 
 </div>
 </div>
-<a class="anchor" id="ae7c25b50507868b1f83213694171ad73"></a>
+<a class="anchor" id="a7593413a5d9bb5a0ba919e815dfb3b51"></a>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
@@ -568,7 +568,13 @@ template&lt;int dim&gt; </div>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">unsigned int const&#160;</td>
-          <td class="paramname"><em>fe_degree</em>&#160;</td>
+          <td class="paramname"><em>fe_degree</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">double const&#160;</td>
+          <td class="paramname"><em>initial_temperature</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -578,7 +584,7 @@ template&lt;int dim&gt; </div>
       </table>
 </div><div class="memdoc">
 
-<p>Definition at line <a class="el" href="adamantine_8cc_source.html#l00355">355</a> of file <a class="el" href="adamantine_8cc_source.html">adamantine.cc</a>.</p>
+<p>Definition at line <a class="el" href="adamantine_8cc_source.html#l00400">400</a> of file <a class="el" href="adamantine_8cc_source.html">adamantine.cc</a>.</p>
 
 </div>
 </div>

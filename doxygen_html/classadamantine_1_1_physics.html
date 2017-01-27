@@ -122,10 +122,14 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:aa847ce5b37b0786cb67167259dd4efb4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad2c34f2834018516adb6bf6f99089b16"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_physics.html#ad2c34f2834018516adb6bf6f99089b16">initialize_dof_vector</a> (dealii::LA::distributed::Vector&lt; NumberType &gt; &amp;vector) const =0</td></tr>
 <tr class="separator:ad2c34f2834018516adb6bf6f99089b16"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2bab827f2f0e9d4914ef34e1ae64f041"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_physics.html#a2bab827f2f0e9d4914ef34e1ae64f041">initialize_dof_vector</a> (NumberType const value, dealii::LA::distributed::Vector&lt; NumberType &gt; &amp;vector) const =0</td></tr>
+<tr class="separator:a2bab827f2f0e9d4914ef34e1ae64f041"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9af6d2b85db5096856c28677faea27ad"><td class="memItemLeft" align="right" valign="top">virtual dealii::DoFHandler&lt; dim &gt; &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_physics.html#a9af6d2b85db5096856c28677faea27ad">get_dof_handler</a> ()=0</td></tr>
 <tr class="separator:a9af6d2b85db5096856c28677faea27ad"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a14d3ade84e9c86144cc26fa0045a0475"><td class="memItemLeft" align="right" valign="top">virtual dealii::ConstraintMatrix &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_physics.html#a14d3ade84e9c86144cc26fa0045a0475">get_constraint_matrix</a> ()=0</td></tr>
 <tr class="separator:a14d3ade84e9c86144cc26fa0045a0475"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3a42d428abb32e1e6510735131cdf470"><td class="memItemLeft" align="right" valign="top">virtual std::shared_ptr&lt; <a class="el" href="classadamantine_1_1_material_property.html">MaterialProperty</a>&lt; dim &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_physics.html#a3a42d428abb32e1e6510735131cdf470">get_material_property</a> ()=0</td></tr>
+<tr class="separator:a3a42d428abb32e1e6510735131cdf470"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><h3>template&lt;int dim, typename NumberType&gt;<br />
@@ -133,7 +137,7 @@ class adamantine::Physics&lt; dim, NumberType &gt;</h3>
 
 <p>This class defines the inteface that every physics needs to implement. </p>
 
-<p>Definition at line <a class="el" href="_physics_8hh_source.html#l00022">22</a> of file <a class="el" href="_physics_8hh_source.html">Physics.hh</a>.</p>
+<p>Definition at line <a class="el" href="_physics_8hh_source.html#l00023">23</a> of file <a class="el" href="_physics_8hh_source.html">Physics.hh</a>.</p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a class="anchor" id="a62a4aec566c336a7b79fe69f0bdfae9d"></a>
 <div class="memitem">
@@ -315,6 +319,34 @@ template&lt;int dim, typename NumberType &gt; </div>
 
 </div>
 </div>
+<a class="anchor" id="a3a42d428abb32e1e6510735131cdf470"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim, typename NumberType &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual std::shared_ptr&lt;<a class="el" href="classadamantine_1_1_material_property.html">MaterialProperty</a>&lt;dim&gt; &gt; <a class="el" href="classadamantine_1_1_physics.html">adamantine::Physics</a>&lt; dim, NumberType &gt;::get_material_property </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">pure virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Return a shared pointer of the <a class="el" href="classadamantine_1_1_material_property.html">MaterialProperty</a>. </p>
+
+<p>Implemented in <a class="el" href="classadamantine_1_1_thermal_physics.html#a3e9c20ec6869e89ed7024f2ff8142368">adamantine::ThermalPhysics&lt; dim, fe_degree, NumberType, QuadratureType &gt;</a>.</p>
+
+</div>
+</div>
 <a class="anchor" id="ad2c34f2834018516adb6bf6f99089b16"></a>
 <div class="memitem">
 <div class="memproto">
@@ -341,6 +373,45 @@ template&lt;int dim, typename NumberType &gt; </div>
 <p>Initialize the given vector. </p>
 
 <p>Implemented in <a class="el" href="classadamantine_1_1_thermal_physics.html#ae44a84db34495afbd21c742470601900">adamantine::ThermalPhysics&lt; dim, fe_degree, NumberType, QuadratureType &gt;</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a2bab827f2f0e9d4914ef34e1ae64f041"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim, typename NumberType &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual void <a class="el" href="classadamantine_1_1_physics.html">adamantine::Physics</a>&lt; dim, NumberType &gt;::initialize_dof_vector </td>
+          <td>(</td>
+          <td class="paramtype">NumberType const&#160;</td>
+          <td class="paramname"><em>value</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">dealii::LA::distributed::Vector&lt; NumberType &gt; &amp;&#160;</td>
+          <td class="paramname"><em>vector</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">pure virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Initialize the given vector with the given value. </p>
+
+<p>Implemented in <a class="el" href="classadamantine_1_1_thermal_physics.html#ac884b8c1fdebcf336e4ab65865aa911d">adamantine::ThermalPhysics&lt; dim, fe_degree, NumberType, QuadratureType &gt;</a>.</p>
 
 </div>
 </div>

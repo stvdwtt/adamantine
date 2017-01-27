@@ -79,6 +79,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
     <ul class="tablist">
       <li><a href="#index_c"><span>c</span></a></li>
       <li><a href="#index_e"><span>e</span></a></li>
+      <li><a href="#index_f"><span>f</span></a></li>
       <li><a href="#index_g"><span>g</span></a></li>
       <li><a href="#index_i"><span>i</span></a></li>
       <li><a href="#index_j"><span>j</span></a></li>
@@ -90,7 +91,9 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
       <li><a href="#index_r"><span>r</span></a></li>
       <li><a href="#index_s"><span>s</span></a></li>
       <li><a href="#index_t"><span>t</span></a></li>
+      <li><a href="#index_u"><span>u</span></a></li>
       <li><a href="#index_v"><span>v</span></a></li>
+      <li><a href="#index_w"><span>w</span></a></li>
       <li class="current"><a href="#index_0x7e"><span>~</span></a></li>
     </ul>
   </div>
@@ -116,12 +119,24 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <li>clear()
 : <a class="el" href="classadamantine_1_1_thermal_operator.html#ab9277607635013eef6e7a6f5b9d45392">adamantine::ThermalOperator&lt; dim, fe_degree, NumberType &gt;</a>
 </li>
+<li>compute_average_enthalpy()
+: <a class="el" href="classadamantine_1_1_material_property.html#a87aa7468b8b606d0b226500a09cf777b">adamantine::MaterialProperty&lt; dim &gt;</a>
+</li>
+<li>compute_constants()
+: <a class="el" href="classadamantine_1_1_material_property.html#a3f6509035835d14da1db7a521fc43b17">adamantine::MaterialProperty&lt; dim &gt;</a>
+</li>
+<li>compute_temperature()
+: <a class="el" href="classadamantine_1_1_post_processor.html#ad035aaa52bd0b71a2b6084457d9cd4fa">adamantine::PostProcessor&lt; dim &gt;</a>
+</li>
 </ul>
 
 
 <h3><a class="anchor" id="index_e"></a>- e -</h3><ul>
 <li>ElectronBeam()
 : <a class="el" href="classadamantine_1_1_electron_beam.html#aa58aebeccd25631070d90dfb6a658c09">adamantine::ElectronBeam&lt; dim &gt;</a>
+</li>
+<li>enthalpy_to_temperature()
+: <a class="el" href="classadamantine_1_1_material_property.html#a5a78e23bb95a812f695deae5eba7f077">adamantine::MaterialProperty&lt; dim &gt;</a>
 </li>
 <li>evaluate_material_properties()
 : <a class="el" href="classadamantine_1_1_thermal_operator.html#a31538c2dfc2364acd32a48cb94ee68af">adamantine::ThermalOperator&lt; dim, fe_degree, NumberType &gt;</a>
@@ -136,12 +151,19 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 </ul>
 
 
+<h3><a class="anchor" id="index_f"></a>- f -</h3><ul>
+<li>fill_properties()
+: <a class="el" href="classadamantine_1_1_material_property.html#a961a08efa713a8a202f9f70d372b6b6f">adamantine::MaterialProperty&lt; dim &gt;</a>
+</li>
+</ul>
+
+
 <h3><a class="anchor" id="index_g"></a>- g -</h3><ul>
 <li>Geometry()
 : <a class="el" href="classadamantine_1_1_geometry.html#a60f14ad96c4242a6ecc9c253c59b5b4b">adamantine::Geometry&lt; dim &gt;</a>
 </li>
 <li>get()
-: <a class="el" href="classadamantine_1_1_material_property.html#a43d564185d52016b9fd3998a66f7b9a4">adamantine::MaterialProperty</a>
+: <a class="el" href="classadamantine_1_1_material_property.html#a466fb9ca096e10e09b29da1be37451e1">adamantine::MaterialProperty&lt; dim &gt;</a>
 </li>
 <li>get_constraint_matrix()
 : <a class="el" href="classadamantine_1_1_physics.html#a14d3ade84e9c86144cc26fa0045a0475">adamantine::Physics&lt; dim, NumberType &gt;</a>
@@ -152,8 +174,12 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 , <a class="el" href="classadamantine_1_1_thermal_physics.html#a044903e9ba8a8a4098b082e2141bb566">adamantine::ThermalPhysics&lt; dim, fe_degree, NumberType, QuadratureType &gt;</a>
 </li>
 <li>get_dof_handler()
-: <a class="el" href="classadamantine_1_1_physics.html#a9af6d2b85db5096856c28677faea27ad">adamantine::Physics&lt; dim, NumberType &gt;</a>
+: <a class="el" href="classadamantine_1_1_material_property.html#a6d959e9ab4725d5f3be9c464df2bc5ce">adamantine::MaterialProperty&lt; dim &gt;</a>
+, <a class="el" href="classadamantine_1_1_physics.html#a9af6d2b85db5096856c28677faea27ad">adamantine::Physics&lt; dim, NumberType &gt;</a>
 , <a class="el" href="classadamantine_1_1_thermal_physics.html#a7be14514da30560a7c4367b5b2298dce">adamantine::ThermalPhysics&lt; dim, fe_degree, NumberType, QuadratureType &gt;</a>
+</li>
+<li>get_dof_index()
+: <a class="el" href="classadamantine_1_1_material_property.html#a2850a7c0bcd852a057a261dc29a7cb04">adamantine::MaterialProperty&lt; dim &gt;</a>
 </li>
 <li>get_electron_beams()
 : <a class="el" href="classadamantine_1_1_thermal_physics.html#ae7fd843f4d2888d4463540e113519db2">adamantine::ThermalPhysics&lt; dim, fe_degree, NumberType, QuadratureType &gt;</a>
@@ -161,11 +187,30 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <li>get_inverse_mass_matrix()
 : <a class="el" href="classadamantine_1_1_thermal_operator.html#a90ff5672680d2b4ca4d286ae0a6f7774">adamantine::ThermalOperator&lt; dim, fe_degree, NumberType &gt;</a>
 </li>
+<li>get_liquid_beta()
+: <a class="el" href="classadamantine_1_1_material_property.html#a504d5fb604dfdb17f7e0c82e2c103349">adamantine::MaterialProperty&lt; dim &gt;</a>
+</li>
+<li>get_material_property()
+: <a class="el" href="classadamantine_1_1_physics.html#a3a42d428abb32e1e6510735131cdf470">adamantine::Physics&lt; dim, NumberType &gt;</a>
+, <a class="el" href="classadamantine_1_1_thermal_physics.html#a3e9c20ec6869e89ed7024f2ff8142368">adamantine::ThermalPhysics&lt; dim, fe_degree, NumberType, QuadratureType &gt;</a>
+</li>
 <li>get_matrix_free()
 : <a class="el" href="classadamantine_1_1_thermal_operator.html#a5c204e0da5378a63da085fa8e0c1314b">adamantine::ThermalOperator&lt; dim, fe_degree, NumberType &gt;</a>
 </li>
 <li>get_max_height()
 : <a class="el" href="classadamantine_1_1_geometry.html#a882c89ce77da0f179917999b9e0d5c07">adamantine::Geometry&lt; dim &gt;</a>
+</li>
+<li>get_mushy_alpha()
+: <a class="el" href="classadamantine_1_1_material_property.html#a9c88b062500ebea19c6f3c80e06d5724">adamantine::MaterialProperty&lt; dim &gt;</a>
+</li>
+<li>get_mushy_beta()
+: <a class="el" href="classadamantine_1_1_material_property.html#a363e6de98ae2993b1be411ccc6c64dd0">adamantine::MaterialProperty&lt; dim &gt;</a>
+</li>
+<li>get_state()
+: <a class="el" href="classadamantine_1_1_material_property.html#a8a4bb25a79704b2dccd5b4052c0b890b">adamantine::MaterialProperty&lt; dim &gt;</a>
+</li>
+<li>get_state_ratio()
+: <a class="el" href="classadamantine_1_1_material_property.html#adaf25d437cebb033c8d85b4423108003">adamantine::MaterialProperty&lt; dim &gt;</a>
 </li>
 <li>get_triangulation()
 : <a class="el" href="classadamantine_1_1_geometry.html#abcf34ad1225fbb7e14aa91d7e20e0385">adamantine::Geometry&lt; dim &gt;</a>
@@ -209,7 +254,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 , <a class="el" href="classadamantine_1_1_thermal_operator.html#a87c622b70f92994d05408ef3470a9b6f">adamantine::ThermalOperator&lt; dim, fe_degree, NumberType &gt;</a>
 </li>
 <li>MaterialProperty()
-: <a class="el" href="classadamantine_1_1_material_property.html#aca2866710b1b2553133d47f25a7277c1">adamantine::MaterialProperty</a>
+: <a class="el" href="classadamantine_1_1_material_property.html#a73a4da2ebaf3f95ee9bb10e5ce1a9877">adamantine::MaterialProperty&lt; dim &gt;</a>
 </li>
 </ul>
 
@@ -219,6 +264,9 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 : <a class="el" href="classadamantine_1_1_implicit_operator.html#a512720a25d713df933225db3c96f249a">adamantine::ImplicitOperator&lt; NumberType &gt;</a>
 , <a class="el" href="classadamantine_1_1_operator.html#aec1d0336e7a8b9ddc58cecc43a4f38c2">adamantine::Operator&lt; NumberType &gt;</a>
 , <a class="el" href="classadamantine_1_1_thermal_operator.html#ad0d2ee16738b306bc723b3e1cbb9d4bf">adamantine::ThermalOperator&lt; dim, fe_degree, NumberType &gt;</a>
+</li>
+<li>NewtonSolver()
+: <a class="el" href="classadamantine_1_1_newton_solver.html#ad60a5156b3f01286ba86e9d6e40544a0">adamantine::NewtonSolver</a>
 </li>
 </ul>
 
@@ -241,7 +289,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 : <a class="el" href="classadamantine_1_1_physics.html#a62a4aec566c336a7b79fe69f0bdfae9d">adamantine::Physics&lt; dim, NumberType &gt;</a>
 </li>
 <li>PostProcessor()
-: <a class="el" href="classadamantine_1_1_post_processor.html#a4b35f03de6d657fd492366d2e6c0cae1">adamantine::PostProcessor&lt; dim &gt;</a>
+: <a class="el" href="classadamantine_1_1_post_processor.html#a61c5813ee05bc1bbed835dc4a5f5e146">adamantine::PostProcessor&lt; dim &gt;</a>
 </li>
 </ul>
 
@@ -251,6 +299,9 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 : <a class="el" href="classadamantine_1_1_physics.html#a1942fa0b937073d568ecace16dd80b3a">adamantine::Physics&lt; dim, NumberType &gt;</a>
 , <a class="el" href="classadamantine_1_1_thermal_operator.html#a420c7f32d342b2c7710d0c32da262d79">adamantine::ThermalOperator&lt; dim, fe_degree, NumberType &gt;</a>
 , <a class="el" href="classadamantine_1_1_thermal_physics.html#a8f29b0a7287193be495fcdbbd2b1bdc7">adamantine::ThermalPhysics&lt; dim, fe_degree, NumberType, QuadratureType &gt;</a>
+</li>
+<li>reinit_dofs()
+: <a class="el" href="classadamantine_1_1_material_property.html#a3195759f1fa5f297288b54761fcc7584">adamantine::MaterialProperty&lt; dim &gt;</a>
 </li>
 </ul>
 
@@ -262,6 +313,9 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <li>set_max_height()
 : <a class="el" href="classadamantine_1_1_electron_beam.html#ae3f00a6463593ee06069d300175c7861">adamantine::ElectronBeam&lt; dim &gt;</a>
 </li>
+<li>set_state()
+: <a class="el" href="classadamantine_1_1_material_property.html#af53e66a890a9c4b0b7a0de8a1ff519a5">adamantine::MaterialProperty&lt; dim &gt;</a>
+</li>
 <li>set_tau()
 : <a class="el" href="classadamantine_1_1_implicit_operator.html#a3160fbc713d5bcf79920ee61d0e7b12c">adamantine::ImplicitOperator&lt; NumberType &gt;</a>
 </li>
@@ -270,12 +324,15 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 , <a class="el" href="classadamantine_1_1_thermal_operator.html#ae9323dccfde2add1753250ea9e7f69cb">adamantine::ThermalOperator&lt; dim, fe_degree, NumberType &gt;</a>
 , <a class="el" href="classadamantine_1_1_thermal_physics.html#ad49b172cf50d9c11ef7580a519e79971">adamantine::ThermalPhysics&lt; dim, fe_degree, NumberType, QuadratureType &gt;</a>
 </li>
+<li>solve()
+: <a class="el" href="classadamantine_1_1_newton_solver.html#a2624c2efdab71abc39da2b43df9507a3">adamantine::NewtonSolver</a>
+</li>
 </ul>
 
 
 <h3><a class="anchor" id="index_t"></a>- t -</h3><ul>
 <li>ThermalOperator()
-: <a class="el" href="classadamantine_1_1_thermal_operator.html#a252b1bf185e548805bbcd79f6972a41b">adamantine::ThermalOperator&lt; dim, fe_degree, NumberType &gt;</a>
+: <a class="el" href="classadamantine_1_1_thermal_operator.html#ac46ea90b083fdf0b80a736e06f00e1c1">adamantine::ThermalOperator&lt; dim, fe_degree, NumberType &gt;</a>
 </li>
 <li>ThermalPhysics()
 : <a class="el" href="classadamantine_1_1_thermal_physics.html#a823937f80001eafd35b2c199630c5a98">adamantine::ThermalPhysics&lt; dim, fe_degree, NumberType, QuadratureType &gt;</a>
@@ -293,6 +350,13 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 </ul>
 
 
+<h3><a class="anchor" id="index_u"></a>- u -</h3><ul>
+<li>update_state()
+: <a class="el" href="classadamantine_1_1_material_property.html#a2c531417108abd40e5bf2464cd60884c">adamantine::MaterialProperty&lt; dim &gt;</a>
+</li>
+</ul>
+
+
 <h3><a class="anchor" id="index_v"></a>- v -</h3><ul>
 <li>value()
 : <a class="el" href="classadamantine_1_1_electron_beam.html#a35a8a4d86f66e690df47ca8ff1d5a2f5">adamantine::ElectronBeam&lt; dim &gt;</a>
@@ -306,6 +370,13 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 : <a class="el" href="classadamantine_1_1_implicit_operator.html#a9ef2abb69626ab81c6a1fca2fd04f829">adamantine::ImplicitOperator&lt; NumberType &gt;</a>
 , <a class="el" href="classadamantine_1_1_operator.html#a0c6c250e870f478d26f7daacac98e925">adamantine::Operator&lt; NumberType &gt;</a>
 , <a class="el" href="classadamantine_1_1_thermal_operator.html#ad75c9dbc637ec09a903780537d68929b">adamantine::ThermalOperator&lt; dim, fe_degree, NumberType &gt;</a>
+</li>
+</ul>
+
+
+<h3><a class="anchor" id="index_w"></a>- w -</h3><ul>
+<li>what()
+: <a class="el" href="classadamantine_1_1_not_implemented_exc.html#ab31e2eabc20d2a197495d3e6ad55a7ed">adamantine::NotImplementedExc</a>
 </li>
 </ul>
 

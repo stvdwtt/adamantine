@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.11"/>
-<title>adamantine: adamantine::MaterialProperty Class Reference</title>
+<title>adamantine: adamantine::MaterialProperty&lt; dim &gt; Class Template Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -89,11 +89,12 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <div class="header">
   <div class="summary">
 <a href="#pub-methods">Public Member Functions</a> &#124;
+<a href="#pri-methods">Private Member Functions</a> &#124;
 <a href="#pri-attribs">Private Attributes</a> &#124;
 <a href="#pri-static-attribs">Static Private Attributes</a> &#124;
 <a href="classadamantine_1_1_material_property-members.html">List of all members</a>  </div>
   <div class="headertitle">
-<div class="title">adamantine::MaterialProperty Class Reference</div>  </div>
+<div class="title">adamantine::MaterialProperty&lt; dim &gt; Class Template Reference</div>  </div>
 </div><!--header-->
 <div class="contents">
 
@@ -101,39 +102,108 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:aca2866710b1b2553133d47f25a7277c1"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_material_property.html#aca2866710b1b2553133d47f25a7277c1">MaterialProperty</a> (boost::property_tree::ptree const &amp;database)</td></tr>
-<tr class="separator:aca2866710b1b2553133d47f25a7277c1"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a43d564185d52016b9fd3998a66f7b9a4"><td class="memTemplParams" colspan="2">template&lt;int dim, typename NumberType &gt; </td></tr>
-<tr class="memitem:a43d564185d52016b9fd3998a66f7b9a4"><td class="memTemplItemLeft" align="right" valign="top">double&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_material_property.html#a43d564185d52016b9fd3998a66f7b9a4">get</a> (typename dealii::Triangulation&lt; dim &gt;::active_cell_iterator const &amp;cell, <a class="el" href="namespaceadamantine.html#a1df21a13a823d00805811d3d3441a7fc">Property</a> prop, dealii::LA::distributed::Vector&lt; NumberType &gt; const &amp;field_state) const </td></tr>
-<tr class="separator:a43d564185d52016b9fd3998a66f7b9a4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a73a4da2ebaf3f95ee9bb10e5ce1a9877"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_material_property.html#a73a4da2ebaf3f95ee9bb10e5ce1a9877">MaterialProperty</a> (boost::mpi::communicator const &amp;communicator, dealii::parallel::distributed::Triangulation&lt; dim &gt; const &amp;tria, boost::property_tree::ptree const &amp;database)</td></tr>
+<tr class="separator:a73a4da2ebaf3f95ee9bb10e5ce1a9877"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a466fb9ca096e10e09b29da1be37451e1"><td class="memTemplParams" colspan="2">template&lt;typename NumberType &gt; </td></tr>
+<tr class="memitem:a466fb9ca096e10e09b29da1be37451e1"><td class="memTemplItemLeft" align="right" valign="top">double&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_material_property.html#a466fb9ca096e10e09b29da1be37451e1">get</a> (typename dealii::Triangulation&lt; dim &gt;::active_cell_iterator const &amp;cell, <a class="el" href="namespaceadamantine.html#a1df21a13a823d00805811d3d3441a7fc">Property</a> prop, dealii::LA::distributed::Vector&lt; NumberType &gt; const &amp;field_state) const </td></tr>
+<tr class="separator:a466fb9ca096e10e09b29da1be37451e1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5a78e23bb95a812f695deae5eba7f077"><td class="memTemplParams" colspan="2">template&lt;typename NumberType &gt; </td></tr>
+<tr class="memitem:a5a78e23bb95a812f695deae5eba7f077"><td class="memTemplItemLeft" align="right" valign="top">dealii::LA::distributed::Vector&lt; NumberType &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_material_property.html#a5a78e23bb95a812f695deae5eba7f077">enthalpy_to_temperature</a> (dealii::DoFHandler&lt; dim &gt; const &amp;enthalpy_dof_handler, dealii::LA::distributed::Vector&lt; NumberType &gt; const &amp;enthalpy)</td></tr>
+<tr class="separator:a5a78e23bb95a812f695deae5eba7f077"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3195759f1fa5f297288b54761fcc7584"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_material_property.html#a3195759f1fa5f297288b54761fcc7584">reinit_dofs</a> ()</td></tr>
+<tr class="separator:a3195759f1fa5f297288b54761fcc7584"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2c531417108abd40e5bf2464cd60884c"><td class="memTemplParams" colspan="2">template&lt;typename NumberType &gt; </td></tr>
+<tr class="memitem:a2c531417108abd40e5bf2464cd60884c"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_material_property.html#a2c531417108abd40e5bf2464cd60884c">update_state</a> (dealii::DoFHandler&lt; dim &gt; const &amp;enthalpy_dof_handler, dealii::LA::distributed::Vector&lt; NumberType &gt; const &amp;enthalpy)</td></tr>
+<tr class="separator:a2c531417108abd40e5bf2464cd60884c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8a4bb25a79704b2dccd5b4052c0b890b"><td class="memItemLeft" align="right" valign="top">std::array&lt; dealii::LA::distributed::Vector&lt; double &gt;, static_cast&lt; unsigned int &gt;<a class="el" href="namespaceadamantine.html#ae3597dafc3ea1167ceb3147d2d9fa34ea62e5cef85d46f1a5a2144d9fd463b79e">MaterialState::SIZE</a>)&gt; &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_material_property.html#a8a4bb25a79704b2dccd5b4052c0b890b">get_state</a> ()</td></tr>
+<tr class="separator:a8a4bb25a79704b2dccd5b4052c0b890b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:adaf25d437cebb033c8d85b4423108003"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_material_property.html#adaf25d437cebb033c8d85b4423108003">get_state_ratio</a> (typename dealii::Triangulation&lt; dim &gt;::active_cell_iterator const &amp;cell, <a class="el" href="namespaceadamantine.html#ae3597dafc3ea1167ceb3147d2d9fa34e">MaterialState</a> material_state) const </td></tr>
+<tr class="separator:adaf25d437cebb033c8d85b4423108003"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a504d5fb604dfdb17f7e0c82e2c103349"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_material_property.html#a504d5fb604dfdb17f7e0c82e2c103349">get_liquid_beta</a> (typename dealii::Triangulation&lt; dim &gt;::active_cell_iterator const &amp;cell) const </td></tr>
+<tr class="separator:a504d5fb604dfdb17f7e0c82e2c103349"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9c88b062500ebea19c6f3c80e06d5724"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_material_property.html#a9c88b062500ebea19c6f3c80e06d5724">get_mushy_alpha</a> (typename dealii::Triangulation&lt; dim &gt;::active_cell_iterator const &amp;cell) const </td></tr>
+<tr class="separator:a9c88b062500ebea19c6f3c80e06d5724"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a363e6de98ae2993b1be411ccc6c64dd0"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_material_property.html#a363e6de98ae2993b1be411ccc6c64dd0">get_mushy_beta</a> (typename dealii::Triangulation&lt; dim &gt;::active_cell_iterator const &amp;cell) const </td></tr>
+<tr class="separator:a363e6de98ae2993b1be411ccc6c64dd0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6d959e9ab4725d5f3be9c464df2bc5ce"><td class="memItemLeft" align="right" valign="top">dealii::DoFHandler&lt; dim &gt; const &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_material_property.html#a6d959e9ab4725d5f3be9c464df2bc5ce">get_dof_handler</a> () const </td></tr>
+<tr class="separator:a6d959e9ab4725d5f3be9c464df2bc5ce"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pri-methods"></a>
+Private Member Functions</h2></td></tr>
+<tr class="memitem:af53e66a890a9c4b0b7a0de8a1ff519a5"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_material_property.html#af53e66a890a9c4b0b7a0de8a1ff519a5">set_state</a> ()</td></tr>
+<tr class="separator:af53e66a890a9c4b0b7a0de8a1ff519a5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a961a08efa713a8a202f9f70d372b6b6f"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_material_property.html#a961a08efa713a8a202f9f70d372b6b6f">fill_properties</a> (boost::property_tree::ptree const &amp;database)</td></tr>
+<tr class="separator:a961a08efa713a8a202f9f70d372b6b6f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3f6509035835d14da1db7a521fc43b17"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_material_property.html#a3f6509035835d14da1db7a521fc43b17">compute_constants</a> ()</td></tr>
+<tr class="separator:a3f6509035835d14da1db7a521fc43b17"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2850a7c0bcd852a057a261dc29a7cb04"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_material_property.html#a2850a7c0bcd852a057a261dc29a7cb04">get_dof_index</a> (typename dealii::Triangulation&lt; dim &gt;::active_cell_iterator const &amp;cell) const </td></tr>
+<tr class="separator:a2850a7c0bcd852a057a261dc29a7cb04"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a87aa7468b8b606d0b226500a09cf777b"><td class="memTemplParams" colspan="2">template&lt;typename NumberType &gt; </td></tr>
+<tr class="memitem:a87aa7468b8b606d0b226500a09cf777b"><td class="memTemplItemLeft" align="right" valign="top">dealii::LA::distributed::Vector&lt; NumberType &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_material_property.html#a87aa7468b8b606d0b226500a09cf777b">compute_average_enthalpy</a> (dealii::DoFHandler&lt; dim &gt; const &amp;enthalpy_dof_handler, dealii::LA::distributed::Vector&lt; NumberType &gt; const &amp;enthalpy) const </td></tr>
+<tr class="separator:a87aa7468b8b606d0b226500a09cf777b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pri-attribs"></a>
 Private Attributes</h2></td></tr>
-<tr class="memitem:af46b431ffaeea27645c975257cce33f5"><td class="memItemLeft" align="right" valign="top">std::unordered_map&lt; dealii::types::material_id, std::array&lt; std::array&lt; std::unique_ptr&lt; dealii::FunctionParser&lt; 1 &gt; &gt;, <a class="el" href="classadamantine_1_1_material_property.html#a290346a2a7e19ebd911cc6c4018ee7fd">_n_properties</a> &gt;, <a class="el" href="classadamantine_1_1_material_property.html#adddbacbb49ab4332b32dd587c1cc9e5a">_n_material_states</a> &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_material_property.html#af46b431ffaeea27645c975257cce33f5">_properties</a></td></tr>
-<tr class="separator:af46b431ffaeea27645c975257cce33f5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abbd00bf0ca8bf545f0906f2ae01a1f3e"><td class="memItemLeft" align="right" valign="top">boost::mpi::communicator&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_material_property.html#abbd00bf0ca8bf545f0906f2ae01a1f3e">_communicator</a></td></tr>
+<tr class="separator:abbd00bf0ca8bf545f0906f2ae01a1f3e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:acaffc836ac9f971e3dbd6cdfa4f5759d"><td class="memItemLeft" align="right" valign="top">std::unordered_map&lt; dealii::types::material_id, double &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_material_property.html#acaffc836ac9f971e3dbd6cdfa4f5759d">_liquid_beta</a></td></tr>
+<tr class="separator:acaffc836ac9f971e3dbd6cdfa4f5759d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a63dea77b404036931e65d72f137fd5c7"><td class="memItemLeft" align="right" valign="top">std::unordered_map&lt; dealii::types::material_id, double &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_material_property.html#a63dea77b404036931e65d72f137fd5c7">_mushy_alpha</a></td></tr>
+<tr class="separator:a63dea77b404036931e65d72f137fd5c7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a702af63ba95c9ff2bee9dda41792569c"><td class="memItemLeft" align="right" valign="top">std::unordered_map&lt; dealii::types::material_id, double &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_material_property.html#a702af63ba95c9ff2bee9dda41792569c">_mushy_beta</a></td></tr>
+<tr class="separator:a702af63ba95c9ff2bee9dda41792569c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af2b6627f8ae170af5834b41215da8fa8"><td class="memItemLeft" align="right" valign="top">std::unordered_map&lt; dealii::types::material_id, std::array&lt; std::array&lt; std::unique_ptr&lt; dealii::FunctionParser&lt; 1 &gt; &gt;, <a class="el" href="classadamantine_1_1_material_property.html#ae1f918ef8722af2d4305f1e82233f3c8">_n_properties</a> &gt;, <a class="el" href="classadamantine_1_1_material_property.html#a7bc58ebf812c2cc906e49f5f7a833ee3">_n_material_states</a> &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_material_property.html#af2b6627f8ae170af5834b41215da8fa8">_properties</a></td></tr>
+<tr class="separator:af2b6627f8ae170af5834b41215da8fa8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac7b543660881273706e13cc21919b1e5"><td class="memItemLeft" align="right" valign="top">std::array&lt; dealii::LA::distributed::Vector&lt; double &gt;, <a class="el" href="classadamantine_1_1_material_property.html#a7bc58ebf812c2cc906e49f5f7a833ee3">_n_material_states</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_material_property.html#ac7b543660881273706e13cc21919b1e5">_state</a></td></tr>
+<tr class="separator:ac7b543660881273706e13cc21919b1e5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5c8174a9090ea735b4484d5278d16b6e"><td class="memItemLeft" align="right" valign="top">dealii::FE_DGQ&lt; dim &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_material_property.html#a5c8174a9090ea735b4484d5278d16b6e">_fe</a></td></tr>
+<tr class="separator:a5c8174a9090ea735b4484d5278d16b6e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a75a1c663563bbbac84eddb30431e1203"><td class="memItemLeft" align="right" valign="top">dealii::DoFHandler&lt; dim &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_material_property.html#a75a1c663563bbbac84eddb30431e1203">_mp_dof_handler</a></td></tr>
+<tr class="separator:a75a1c663563bbbac84eddb30431e1203"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pri-static-attribs"></a>
 Static Private Attributes</h2></td></tr>
-<tr class="memitem:adddbacbb49ab4332b32dd587c1cc9e5a"><td class="memItemLeft" align="right" valign="top">static unsigned int constexpr&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_material_property.html#adddbacbb49ab4332b32dd587c1cc9e5a">_n_material_states</a> = 3</td></tr>
-<tr class="separator:adddbacbb49ab4332b32dd587c1cc9e5a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a290346a2a7e19ebd911cc6c4018ee7fd"><td class="memItemLeft" align="right" valign="top">static unsigned int constexpr&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_material_property.html#a290346a2a7e19ebd911cc6c4018ee7fd">_n_properties</a> = 3</td></tr>
-<tr class="separator:a290346a2a7e19ebd911cc6c4018ee7fd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7bc58ebf812c2cc906e49f5f7a833ee3"><td class="memItemLeft" align="right" valign="top">static unsigned int constexpr&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_material_property.html#a7bc58ebf812c2cc906e49f5f7a833ee3">_n_material_states</a></td></tr>
+<tr class="separator:a7bc58ebf812c2cc906e49f5f7a833ee3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae1f918ef8722af2d4305f1e82233f3c8"><td class="memItemLeft" align="right" valign="top">static unsigned int constexpr&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_material_property.html#ae1f918ef8722af2d4305f1e82233f3c8">_n_properties</a></td></tr>
+<tr class="separator:ae1f918ef8722af2d4305f1e82233f3c8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>This class stores the material properties for all the materials </p>
+<div class="textblock"><h3>template&lt;int dim&gt;<br />
+class adamantine::MaterialProperty&lt; dim &gt;</h3>
 
-<p>Definition at line <a class="el" href="_material_property_8hh_source.html#l00025">25</a> of file <a class="el" href="_material_property_8hh_source.html">MaterialProperty.hh</a>.</p>
+<p>This class stores the material properties for all the materials </p>
+
+<p>Definition at line <a class="el" href="_material_property_8hh_source.html#l00033">33</a> of file <a class="el" href="_material_property_8hh_source.html">MaterialProperty.hh</a>.</p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
-<a class="anchor" id="aca2866710b1b2553133d47f25a7277c1"></a>
+<a class="anchor" id="a73a4da2ebaf3f95ee9bb10e5ce1a9877"></a>
 <div class="memitem">
 <div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
       <table class="memname">
         <tr>
-          <td class="memname">adamantine::MaterialProperty::MaterialProperty </td>
+          <td class="memname"><a class="el" href="classadamantine_1_1_material_property.html">adamantine::MaterialProperty</a>&lt; dim &gt;::<a class="el" href="classadamantine_1_1_material_property.html">MaterialProperty</a> </td>
           <td>(</td>
-          <td class="paramtype">boost::property_tree::ptree const &amp;&#160;</td>
-          <td class="paramname"><em>database</em></td><td>)</td>
+          <td class="paramtype">boost::mpi::communicator const &amp;&#160;</td>
+          <td class="paramname"><em>communicator</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
           <td></td>
+          <td class="paramtype">dealii::parallel::distributed::Triangulation&lt; dim &gt; const &amp;&#160;</td>
+          <td class="paramname"><em>tria</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">boost::property_tree::ptree const &amp;&#160;</td>
+          <td class="paramname"><em>database</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -150,19 +220,152 @@ Static Private Attributes</h2></td></tr>
   </dd>
 </dl>
 
-<p>Definition at line <a class="el" href="_material_property_8cc_source.html#l00015">15</a> of file <a class="el" href="_material_property_8cc_source.html">MaterialProperty.cc</a>.</p>
+<p>Definition at line <a class="el" href="_material_property_8templates_8hh_source.html#l00021">21</a> of file <a class="el" href="_material_property_8templates_8hh_source.html">MaterialProperty.templates.hh</a>.</p>
 
 </div>
 </div>
 <h2 class="groupheader">Member Function Documentation</h2>
-<a class="anchor" id="a43d564185d52016b9fd3998a66f7b9a4"></a>
+<a class="anchor" id="a87aa7468b8b606d0b226500a09cf777b"></a>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;int dim, typename NumberType &gt; </div>
+template&lt;int dim&gt; </div>
+<div class="memtemplate">
+template&lt;typename NumberType &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">double adamantine::MaterialProperty::get </td>
+          <td class="memname">dealii::LA::distributed::Vector&lt; NumberType &gt; <a class="el" href="classadamantine_1_1_material_property.html">adamantine::MaterialProperty</a>&lt; dim &gt;::compute_average_enthalpy </td>
+          <td>(</td>
+          <td class="paramtype">dealii::DoFHandler&lt; dim &gt; const &amp;&#160;</td>
+          <td class="paramname"><em>enthalpy_dof_handler</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">dealii::LA::distributed::Vector&lt; NumberType &gt; const &amp;&#160;</td>
+          <td class="paramname"><em>enthalpy</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">private</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Compute the average of the enthalpy on every cell. </p>
+
+<p>Definition at line <a class="el" href="_material_property_8templates_8hh_source.html#l00386">386</a> of file <a class="el" href="_material_property_8templates_8hh_source.html">MaterialProperty.templates.hh</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a3f6509035835d14da1db7a521fc43b17"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void <a class="el" href="classadamantine_1_1_material_property.html">adamantine::MaterialProperty</a>&lt; dim &gt;::compute_constants </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">private</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>If the density and the specific heat do not depend on the temperature, the relationship between the temperature and the enthalpy can be written by piecewise function <img class="formulaInl" alt="$ T = \alpha H + \beta $" src="form_11.png"/>. This function computes the constants <img class="formulaInl" alt="$ \alpha $" src="form_12.png"/> and <img class="formulaInl" alt="$ \beta $" src="form_13.png"/>. </p>
+
+<p>Definition at line <a class="el" href="_material_property_8templates_8hh_source.html#l00322">322</a> of file <a class="el" href="_material_property_8templates_8hh_source.html">MaterialProperty.templates.hh</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a5a78e23bb95a812f695deae5eba7f077"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
+<div class="memtemplate">
+template&lt;typename NumberType &gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">dealii::LA::distributed::Vector&lt; NumberType &gt; <a class="el" href="classadamantine_1_1_material_property.html">adamantine::MaterialProperty</a>&lt; dim &gt;::enthalpy_to_temperature </td>
+          <td>(</td>
+          <td class="paramtype">dealii::DoFHandler&lt; dim &gt; const &amp;&#160;</td>
+          <td class="paramname"><em>enthalpy_dof_handler</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">dealii::LA::distributed::Vector&lt; NumberType &gt; const &amp;&#160;</td>
+          <td class="paramname"><em>enthalpy</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Return the average temperature on every cell given the enthalpy. </p>
+
+<p>Definition at line <a class="el" href="_material_property_8templates_8hh_source.html#l00072">72</a> of file <a class="el" href="_material_property_8templates_8hh_source.html">MaterialProperty.templates.hh</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a961a08efa713a8a202f9f70d372b6b6f"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void <a class="el" href="classadamantine_1_1_material_property.html">adamantine::MaterialProperty</a>&lt; dim &gt;::fill_properties </td>
+          <td>(</td>
+          <td class="paramtype">boost::property_tree::ptree const &amp;&#160;</td>
+          <td class="paramname"><em>database</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">private</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Fill the _properties map. </p>
+
+<p>Definition at line <a class="el" href="_material_property_8templates_8hh_source.html#l00232">232</a> of file <a class="el" href="_material_property_8templates_8hh_source.html">MaterialProperty.templates.hh</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a466fb9ca096e10e09b29da1be37451e1"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
+<div class="memtemplate">
+template&lt;typename NumberType &gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">double <a class="el" href="classadamantine_1_1_material_property.html">adamantine::MaterialProperty</a>&lt; dim &gt;::get </td>
           <td>(</td>
           <td class="paramtype">typename dealii::Triangulation&lt; dim &gt;::active_cell_iterator const &amp;&#160;</td>
           <td class="paramname"><em>cell</em>, </td>
@@ -188,20 +391,463 @@ template&lt;int dim, typename NumberType &gt; </div>
 </div><div class="memdoc">
 <p>Return the value of the given property, for a given cell and a given field state. </p>
 
-<p>Definition at line <a class="el" href="_material_property_8hh_source.html#l00072">72</a> of file <a class="el" href="_material_property_8hh_source.html">MaterialProperty.hh</a>.</p>
+<p>Definition at line <a class="el" href="_material_property_8templates_8hh_source.html#l00045">45</a> of file <a class="el" href="_material_property_8templates_8hh_source.html">MaterialProperty.templates.hh</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a6d959e9ab4725d5f3be9c464df2bc5ce"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">dealii::DoFHandler&lt; dim &gt; const &amp; <a class="el" href="classadamantine_1_1_material_property.html">adamantine::MaterialProperty</a>&lt; dim &gt;::get_dof_handler </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Return the underlying the DoFHandler. </p>
+
+<p>Definition at line <a class="el" href="_material_property_8hh_source.html#l00284">284</a> of file <a class="el" href="_material_property_8hh_source.html">MaterialProperty.hh</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a2850a7c0bcd852a057a261dc29a7cb04"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">double <a class="el" href="classadamantine_1_1_material_property.html">adamantine::MaterialProperty</a>&lt; dim &gt;::get_dof_index </td>
+          <td>(</td>
+          <td class="paramtype">typename dealii::Triangulation&lt; dim &gt;::active_cell_iterator const &amp;&#160;</td>
+          <td class="paramname"><em>cell</em></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">private</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Return the index of the dof associated to the cell. </p>
+
+<p>Definition at line <a class="el" href="_material_property_8hh_source.html#l00269">269</a> of file <a class="el" href="_material_property_8hh_source.html">MaterialProperty.hh</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a504d5fb604dfdb17f7e0c82e2c103349"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">double <a class="el" href="classadamantine_1_1_material_property.html">adamantine::MaterialProperty</a>&lt; dim &gt;::get_liquid_beta </td>
+          <td>(</td>
+          <td class="paramtype">typename dealii::Triangulation&lt; dim &gt;::active_cell_iterator const &amp;&#160;</td>
+          <td class="paramname"><em>cell</em></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Return <img class="formulaInl" alt="$ -\frac{H_{liquidus}}{\rho C_P} + T_{liquidus} $" src="form_8.png"/> </p>
+
+<p>Definition at line <a class="el" href="_material_property_8hh_source.html#l00236">236</a> of file <a class="el" href="_material_property_8hh_source.html">MaterialProperty.hh</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a9c88b062500ebea19c6f3c80e06d5724"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">double <a class="el" href="classadamantine_1_1_material_property.html">adamantine::MaterialProperty</a>&lt; dim &gt;::get_mushy_alpha </td>
+          <td>(</td>
+          <td class="paramtype">typename dealii::Triangulation&lt; dim &gt;::active_cell_iterator const &amp;&#160;</td>
+          <td class="paramname"><em>cell</em></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Return <img class="formulaInl" alt="$ \frac{T_{liquidus}-T_{solidus}}{\mathcal{L}} $" src="form_9.png"/> </p>
+
+<p>Definition at line <a class="el" href="_material_property_8hh_source.html#l00247">247</a> of file <a class="el" href="_material_property_8hh_source.html">MaterialProperty.hh</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a363e6de98ae2993b1be411ccc6c64dd0"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">double <a class="el" href="classadamantine_1_1_material_property.html">adamantine::MaterialProperty</a>&lt; dim &gt;::get_mushy_beta </td>
+          <td>(</td>
+          <td class="paramtype">typename dealii::Triangulation&lt; dim &gt;::active_cell_iterator const &amp;&#160;</td>
+          <td class="paramname"><em>cell</em></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Return <img class="formulaInl" alt="$ -H_{solidus} \frac{T_{liquidus}-T_{solidus}}{\mathcal{L}} + T_{solidus} $" src="form_10.png"/> </p>
+
+<p>Definition at line <a class="el" href="_material_property_8hh_source.html#l00258">258</a> of file <a class="el" href="_material_property_8hh_source.html">MaterialProperty.hh</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a8a4bb25a79704b2dccd5b4052c0b890b"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::array&lt; dealii::LA::distributed::Vector&lt; double &gt;, static_cast&lt; unsigned int &gt;<a class="el" href="namespaceadamantine.html#ae3597dafc3ea1167ceb3147d2d9fa34ea62e5cef85d46f1a5a2144d9fd463b79e">MaterialState::SIZE</a>)&gt; &amp; <a class="el" href="classadamantine_1_1_material_property.html">adamantine::MaterialProperty</a>&lt; dim &gt;::get_state </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Get the array of material state vectors. The order of the different state vectos is given by the MaterialState enum. Each entry in the vector correspond to a cell in the mesh and has a value between 0 and 1. The sum of the states for a given cell is equal to 1. </p>
+
+<p>Definition at line <a class="el" href="_material_property_8hh_source.html#l00219">219</a> of file <a class="el" href="_material_property_8hh_source.html">MaterialProperty.hh</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="adaf25d437cebb033c8d85b4423108003"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">double <a class="el" href="classadamantine_1_1_material_property.html">adamantine::MaterialProperty</a>&lt; dim &gt;::get_state_ratio </td>
+          <td>(</td>
+          <td class="paramtype">typename dealii::Triangulation&lt; dim &gt;::active_cell_iterator const &amp;&#160;</td>
+          <td class="paramname"><em>cell</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="namespaceadamantine.html#ae3597dafc3ea1167ceb3147d2d9fa34e">MaterialState</a>&#160;</td>
+          <td class="paramname"><em>material_state</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="_material_property_8hh_source.html#l00225">225</a> of file <a class="el" href="_material_property_8hh_source.html">MaterialProperty.hh</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a3195759f1fa5f297288b54761fcc7584"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">void <a class="el" href="classadamantine_1_1_material_property.html">adamantine::MaterialProperty</a>&lt; dim &gt;::reinit_dofs </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Reinitialize the DoFHandler associated with <a class="el" href="classadamantine_1_1_material_property.html">MaterialProperty</a> and resize the state vectors. </p>
+
+<p>Definition at line <a class="el" href="_material_property_8templates_8hh_source.html#l00133">133</a> of file <a class="el" href="_material_property_8templates_8hh_source.html">MaterialProperty.templates.hh</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="af53e66a890a9c4b0b7a0de8a1ff519a5"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void <a class="el" href="classadamantine_1_1_material_property.html">adamantine::MaterialProperty</a>&lt; dim &gt;::set_state </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">private</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Set the values in _state from the values of the user index of the Triangulation. </p>
+
+<p>Definition at line <a class="el" href="_material_property_8templates_8hh_source.html#l00218">218</a> of file <a class="el" href="_material_property_8templates_8hh_source.html">MaterialProperty.templates.hh</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a2c531417108abd40e5bf2464cd60884c"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
+<div class="memtemplate">
+template&lt;typename NumberType &gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">void <a class="el" href="classadamantine_1_1_material_property.html">adamantine::MaterialProperty</a>&lt; dim &gt;::update_state </td>
+          <td>(</td>
+          <td class="paramtype">dealii::DoFHandler&lt; dim &gt; const &amp;&#160;</td>
+          <td class="paramname"><em>enthalpy_dof_handler</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">dealii::LA::distributed::Vector&lt; NumberType &gt; const &amp;&#160;</td>
+          <td class="paramname"><em>enthalpy</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Update the material state, i.e, the ratio of liquid, powder, and solid. </p>
+
+<p>Definition at line <a class="el" href="_material_property_8templates_8hh_source.html#l00143">143</a> of file <a class="el" href="_material_property_8templates_8hh_source.html">MaterialProperty.templates.hh</a>.</p>
 
 </div>
 </div>
 <h2 class="groupheader">Member Data Documentation</h2>
-<a class="anchor" id="adddbacbb49ab4332b32dd587c1cc9e5a"></a>
+<a class="anchor" id="abbd00bf0ca8bf545f0906f2ae01a1f3e"></a>
 <div class="memitem">
 <div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">unsigned int constexpr adamantine::MaterialProperty::_n_material_states = 3</td>
+          <td class="memname">boost::mpi::communicator <a class="el" href="classadamantine_1_1_material_property.html">adamantine::MaterialProperty</a>&lt; dim &gt;::_communicator</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">private</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>MPI communicator. </p>
+
+<p>Definition at line <a class="el" href="_material_property_8hh_source.html#l00176">176</a> of file <a class="el" href="_material_property_8hh_source.html">MaterialProperty.hh</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a5c8174a9090ea735b4484d5278d16b6e"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">dealii::FE_DGQ&lt;dim&gt; <a class="el" href="classadamantine_1_1_material_property.html">adamantine::MaterialProperty</a>&lt; dim &gt;::_fe</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">private</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Discontinuous piecewise constant finite element. </p>
+
+<p>Definition at line <a class="el" href="_material_property_8hh_source.html#l00209">209</a> of file <a class="el" href="_material_property_8hh_source.html">MaterialProperty.hh</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="acaffc836ac9f971e3dbd6cdfa4f5759d"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::unordered_map&lt;dealii::types::material_id, double&gt; <a class="el" href="classadamantine_1_1_material_property.html">adamantine::MaterialProperty</a>&lt; dim &gt;::_liquid_beta</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">private</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Map of <img class="formulaInl" alt="$ -\frac{H_{liquidus}}{\rho C_P} + T_{liquidus} $" src="form_8.png"/> for each material. </p>
+
+<p>Definition at line <a class="el" href="_material_property_8hh_source.html#l00181">181</a> of file <a class="el" href="_material_property_8hh_source.html">MaterialProperty.hh</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a75a1c663563bbbac84eddb30431e1203"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">dealii::DoFHandler&lt;dim&gt; <a class="el" href="classadamantine_1_1_material_property.html">adamantine::MaterialProperty</a>&lt; dim &gt;::_mp_dof_handler</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">private</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>DoFHandler associated to the _state array. </p>
+
+<p>Definition at line <a class="el" href="_material_property_8hh_source.html#l00213">213</a> of file <a class="el" href="_material_property_8hh_source.html">MaterialProperty.hh</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a63dea77b404036931e65d72f137fd5c7"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::unordered_map&lt;dealii::types::material_id, double&gt; <a class="el" href="classadamantine_1_1_material_property.html">adamantine::MaterialProperty</a>&lt; dim &gt;::_mushy_alpha</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">private</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Map of <img class="formulaInl" alt="$ \frac{T_{liquidus}-T_{solidus}}{\mathcal{L}} $" src="form_9.png"/> for each material. </p>
+
+<p>Definition at line <a class="el" href="_material_property_8hh_source.html#l00186">186</a> of file <a class="el" href="_material_property_8hh_source.html">MaterialProperty.hh</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a702af63ba95c9ff2bee9dda41792569c"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::unordered_map&lt;dealii::types::material_id, double&gt; <a class="el" href="classadamantine_1_1_material_property.html">adamantine::MaterialProperty</a>&lt; dim &gt;::_mushy_beta</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">private</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Map of <img class="formulaInl" alt="$ -H_{solidus} \frac{T_{liquidus}-T_{solidus}}{\mathcal{L}} + T_{solidus} $" src="form_10.png"/> for each material. </p>
+
+<p>Definition at line <a class="el" href="_material_property_8hh_source.html#l00191">191</a> of file <a class="el" href="_material_property_8hh_source.html">MaterialProperty.hh</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a7bc58ebf812c2cc906e49f5f7a833ee3"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">unsigned int constexpr <a class="el" href="classadamantine_1_1_material_property.html">adamantine::MaterialProperty</a>&lt; dim &gt;::_n_material_states</td>
         </tr>
       </table>
   </td>
@@ -210,21 +856,23 @@ template&lt;int dim, typename NumberType &gt; </div>
   </tr>
 </table>
 </div><div class="memdoc">
-<p>Maximum different number of states a given material can be. </p>
+<b>Initial value:</b><div class="fragment"><div class="line">=</div><div class="line">      <span class="keyword">static_cast&lt;</span><span class="keywordtype">unsigned</span> <span class="keywordtype">int</span><span class="keyword">&gt;</span>(<a class="code" href="namespaceadamantine.html#ae3597dafc3ea1167ceb3147d2d9fa34ea62e5cef85d46f1a5a2144d9fd463b79e">MaterialState::SIZE</a>)</div></div><!-- fragment --><p>Maximum different number of states a given material can be. </p>
 
-<p>Definition at line <a class="el" href="_material_property_8hh_source.html#l00056">56</a> of file <a class="el" href="_material_property_8hh_source.html">MaterialProperty.hh</a>.</p>
+<p>Definition at line <a class="el" href="_material_property_8hh_source.html#l00130">130</a> of file <a class="el" href="_material_property_8hh_source.html">MaterialProperty.hh</a>.</p>
 
 </div>
 </div>
-<a class="anchor" id="a290346a2a7e19ebd911cc6c4018ee7fd"></a>
+<a class="anchor" id="ae1f918ef8722af2d4305f1e82233f3c8"></a>
 <div class="memitem">
 <div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">unsigned int constexpr adamantine::MaterialProperty::_n_properties = 3</td>
+          <td class="memname">unsigned int constexpr <a class="el" href="classadamantine_1_1_material_property.html">adamantine::MaterialProperty</a>&lt; dim &gt;::_n_properties</td>
         </tr>
       </table>
   </td>
@@ -233,21 +881,23 @@ template&lt;int dim, typename NumberType &gt; </div>
   </tr>
 </table>
 </div><div class="memdoc">
-<p>Number of properties defined. </p>
+<b>Initial value:</b><div class="fragment"><div class="line">=</div><div class="line">      <span class="keyword">static_cast&lt;</span><span class="keywordtype">unsigned</span> <span class="keywordtype">int</span><span class="keyword">&gt;</span>(<a class="code" href="namespaceadamantine.html#ae3597dafc3ea1167ceb3147d2d9fa34ea62e5cef85d46f1a5a2144d9fd463b79e">Property::SIZE</a>)</div></div><!-- fragment --><p>Number of properties defined. </p>
 
-<p>Definition at line <a class="el" href="_material_property_8hh_source.html#l00060">60</a> of file <a class="el" href="_material_property_8hh_source.html">MaterialProperty.hh</a>.</p>
+<p>Definition at line <a class="el" href="_material_property_8hh_source.html#l00136">136</a> of file <a class="el" href="_material_property_8hh_source.html">MaterialProperty.hh</a>.</p>
 
 </div>
 </div>
-<a class="anchor" id="af46b431ffaeea27645c975257cce33f5"></a>
+<a class="anchor" id="af2b6627f8ae170af5834b41215da8fa8"></a>
 <div class="memitem">
 <div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">std::unordered_map&lt; dealii::types::material_id, std::array&lt; std::array&lt;std::unique_ptr&lt;dealii::FunctionParser&lt;1&gt; &gt;, <a class="el" href="classadamantine_1_1_material_property.html#a290346a2a7e19ebd911cc6c4018ee7fd">_n_properties</a>&gt;, <a class="el" href="classadamantine_1_1_material_property.html#adddbacbb49ab4332b32dd587c1cc9e5a">_n_material_states</a>&gt; &gt; adamantine::MaterialProperty::_properties</td>
+          <td class="memname">std::unordered_map&lt; dealii::types::material_id, std::array&lt; std::array&lt;std::unique_ptr&lt;dealii::FunctionParser&lt;1&gt; &gt;, <a class="el" href="classadamantine_1_1_material_property.html#ae1f918ef8722af2d4305f1e82233f3c8">_n_properties</a>&gt;, <a class="el" href="classadamantine_1_1_material_property.html#a7bc58ebf812c2cc906e49f5f7a833ee3">_n_material_states</a>&gt; &gt; <a class="el" href="classadamantine_1_1_material_property.html">adamantine::MaterialProperty</a>&lt; dim &gt;::_properties</td>
         </tr>
       </table>
   </td>
@@ -258,13 +908,39 @@ template&lt;int dim, typename NumberType &gt; </div>
 </div><div class="memdoc">
 <p>Map that stores functions describing the properties of the material. </p>
 
-<p>Definition at line <a class="el" href="_material_property_8hh_source.html#l00068">68</a> of file <a class="el" href="_material_property_8hh_source.html">MaterialProperty.hh</a>.</p>
+<p>Definition at line <a class="el" href="_material_property_8hh_source.html#l00199">199</a> of file <a class="el" href="_material_property_8hh_source.html">MaterialProperty.hh</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="ac7b543660881273706e13cc21919b1e5"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::array&lt;dealii::LA::distributed::Vector&lt;double&gt;, <a class="el" href="classadamantine_1_1_material_property.html#a7bc58ebf812c2cc906e49f5f7a833ee3">_n_material_states</a>&gt; <a class="el" href="classadamantine_1_1_material_property.html">adamantine::MaterialProperty</a>&lt; dim &gt;::_state</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">private</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Array of vector describing the ratio of each state in each cell. Each vector corresponds to a state defined in the MaterialState enum. </p>
+
+<p>Definition at line <a class="el" href="_material_property_8hh_source.html#l00205">205</a> of file <a class="el" href="_material_property_8hh_source.html">MaterialProperty.hh</a>.</p>
 
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following files:<ul>
 <li>/home/bt2/Documents/adamantine/source/<a class="el" href="_material_property_8hh_source.html">MaterialProperty.hh</a></li>
 <li>/home/bt2/Documents/adamantine/source/<a class="el" href="_material_property_8cc_source.html">MaterialProperty.cc</a></li>
+<li>/home/bt2/Documents/adamantine/source/<a class="el" href="_material_property_8templates_8hh_source.html">MaterialProperty.templates.hh</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

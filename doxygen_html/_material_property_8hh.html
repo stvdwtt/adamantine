@@ -95,17 +95,24 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <div class="textblock"><code>#include &quot;<a class="el" href="types_8hh_source.html">types.hh</a>&quot;</code><br />
 <code>#include &quot;<a class="el" href="utils_8hh_source.html">utils.hh</a>&quot;</code><br />
 <code>#include &lt;deal.II/base/function_parser.h&gt;</code><br />
-<code>#include &lt;deal.II/grid/tria.h&gt;</code><br />
+<code>#include &lt;deal.II/distributed/tria.h&gt;</code><br />
+<code>#include &lt;deal.II/dofs/dof_accessor.h&gt;</code><br />
+<code>#include &lt;deal.II/dofs/dof_handler.h&gt;</code><br />
+<code>#include &lt;deal.II/fe/fe_dgq.h&gt;</code><br />
+<code>#include &lt;deal.II/grid/filtered_iterator.h&gt;</code><br />
 <code>#include &lt;deal.II/lac/la_parallel_vector.h&gt;</code><br />
+<code>#include &lt;deal.II/lac/la_vector.h&gt;</code><br />
+<code>#include &lt;boost/mpi.hpp&gt;</code><br />
 <code>#include &lt;boost/property_tree/ptree.hpp&gt;</code><br />
 <code>#include &lt;array&gt;</code><br />
+<code>#include &lt;limits&gt;</code><br />
 <code>#include &lt;unordered_map&gt;</code><br />
 </div>
 <p><a href="_material_property_8hh_source.html">Go to the source code of this file.</a></p>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="nested-classes"></a>
 Classes</h2></td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_material_property.html">adamantine::MaterialProperty</a></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_material_property.html">adamantine::MaterialProperty&lt; dim &gt;</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="namespaces"></a>

@@ -1,7 +1,10 @@
 var searchData=
 [
-  ['thermaloperator',['ThermalOperator',['../classadamantine_1_1_thermal_operator.html#a252b1bf185e548805bbcd79f6972a41b',1,'adamantine::ThermalOperator']]],
-  ['thermalphysics',['ThermalPhysics',['../classadamantine_1_1_thermal_physics.html#a823937f80001eafd35b2c199630c5a98',1,'adamantine::ThermalPhysics']]],
-  ['tvmult',['Tvmult',['../classadamantine_1_1_implicit_operator.html#a19c2528be9bef88f59b09e8a390696b7',1,'adamantine::ImplicitOperator::Tvmult()'],['../classadamantine_1_1_operator.html#aecbdf59747005dccd0566ccac1d82054',1,'adamantine::Operator::Tvmult()'],['../classadamantine_1_1_thermal_operator.html#a746115db1afe7f5ad9911ff37dbbf536',1,'adamantine::ThermalOperator::Tvmult()']]],
-  ['tvmult_5fadd',['Tvmult_add',['../classadamantine_1_1_implicit_operator.html#a7fe28de4faeb1363e7978ce4c2c41a4b',1,'adamantine::ImplicitOperator::Tvmult_add()'],['../classadamantine_1_1_operator.html#a0f05b3b4bc689d0652a2e53d9885ec78',1,'adamantine::Operator::Tvmult_add()'],['../classadamantine_1_1_thermal_operator.html#abdcdd1e201cb076e95207999010dac37',1,'adamantine::ThermalOperator::Tvmult_add()']]]
+  ['set',['set',['../source_2_c_make_lists_8txt.html#a3f1cff303046bb350f41c96751865965',1,'CMakeLists.txt']]],
+  ['set_5finverse_5fmass_5fmatrix',['set_inverse_mass_matrix',['../classadamantine_1_1_implicit_operator.html#a80268fa45590fdce6bebcb4b319c5b94',1,'adamantine::ImplicitOperator']]],
+  ['set_5fmax_5fheight',['set_max_height',['../classadamantine_1_1_electron_beam.html#ae3f00a6463593ee06069d300175c7861',1,'adamantine::ElectronBeam']]],
+  ['set_5fstate',['set_state',['../classadamantine_1_1_material_property.html#af53e66a890a9c4b0b7a0de8a1ff519a5',1,'adamantine::MaterialProperty']]],
+  ['set_5ftau',['set_tau',['../classadamantine_1_1_implicit_operator.html#a3160fbc713d5bcf79920ee61d0e7b12c',1,'adamantine::ImplicitOperator']]],
+  ['setup_5fdofs',['setup_dofs',['../classadamantine_1_1_physics.html#aa33f4bc8fcff6e37ce754ed9ddb5ef0d',1,'adamantine::Physics::setup_dofs()'],['../classadamantine_1_1_thermal_operator.html#ae9323dccfde2add1753250ea9e7f69cb',1,'adamantine::ThermalOperator::setup_dofs()'],['../classadamantine_1_1_thermal_physics.html#ad49b172cf50d9c11ef7580a519e79971',1,'adamantine::ThermalPhysics::setup_dofs()']]],
+  ['solve',['solve',['../classadamantine_1_1_newton_solver.html#a2624c2efdab71abc39da2b43df9507a3',1,'adamantine::NewtonSolver']]]
 ];

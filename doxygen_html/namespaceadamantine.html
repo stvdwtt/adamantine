@@ -102,6 +102,10 @@ Classes</h2></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_material_property.html">MaterialProperty</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_newton_solver.html">NewtonSolver</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_not_implemented_exc.html">NotImplementedExc</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_operator.html">Operator</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classadamantine_1_1_physics.html">Physics</a></td></tr>
@@ -115,14 +119,22 @@ Classes</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="enum-members"></a>
 Enumerations</h2></td></tr>
-<tr class="memitem:ae3597dafc3ea1167ceb3147d2d9fa34e"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceadamantine.html#ae3597dafc3ea1167ceb3147d2d9fa34e">MaterialState</a> { <a class="el" href="namespaceadamantine.html#ae3597dafc3ea1167ceb3147d2d9fa34eab737427fa963eac6f4b330a89a98b138">powder</a>, 
-<a class="el" href="namespaceadamantine.html#ae3597dafc3ea1167ceb3147d2d9fa34eae577b2e3116108d7be453fa96ffb95e6">solid</a>, 
-<a class="el" href="namespaceadamantine.html#ae3597dafc3ea1167ceb3147d2d9fa34ea91b7587330f7f7fb8f948071d7dc364b">liquid</a>
+<tr class="memitem:ae3597dafc3ea1167ceb3147d2d9fa34e"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceadamantine.html#ae3597dafc3ea1167ceb3147d2d9fa34e">MaterialState</a> { <a class="el" href="namespaceadamantine.html#ae3597dafc3ea1167ceb3147d2d9fa34ea1c3a7de8ed1f4f0ef7eafaf4aba05515">MaterialState::powder</a>, 
+<a class="el" href="namespaceadamantine.html#ae3597dafc3ea1167ceb3147d2d9fa34eaec03f91ae56e478455e3786e91559194">MaterialState::solid</a>, 
+<a class="el" href="namespaceadamantine.html#ae3597dafc3ea1167ceb3147d2d9fa34eaf80b6383d767feb24333c7d460bed98c">MaterialState::liquid</a>, 
+<a class="el" href="namespaceadamantine.html#ae3597dafc3ea1167ceb3147d2d9fa34ea62e5cef85d46f1a5a2144d9fd463b79e">MaterialState::SIZE</a>
  }</td></tr>
 <tr class="separator:ae3597dafc3ea1167ceb3147d2d9fa34e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a1df21a13a823d00805811d3d3441a7fc"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceadamantine.html#a1df21a13a823d00805811d3d3441a7fc">Property</a> { <a class="el" href="namespaceadamantine.html#a1df21a13a823d00805811d3d3441a7fcae49345a0feea6f2df28427b8762b2002">density</a>, 
-<a class="el" href="namespaceadamantine.html#a1df21a13a823d00805811d3d3441a7fcaaae6e15efbebac7610ded7d9c1b37119">specific_heat</a>, 
-<a class="el" href="namespaceadamantine.html#a1df21a13a823d00805811d3d3441a7fcaab6865c0b23e86a50c16f4c65381ab16">thermal_conductivity</a>
+<tr class="memitem:a1df21a13a823d00805811d3d3441a7fc"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceadamantine.html#a1df21a13a823d00805811d3d3441a7fc">Property</a> { <br />
+&#160;&#160;<a class="el" href="namespaceadamantine.html#a1df21a13a823d00805811d3d3441a7fca35f3675343000d6bb5f10ce451a571a4">Property::density</a>, 
+<a class="el" href="namespaceadamantine.html#a1df21a13a823d00805811d3d3441a7fca178e9ac007bf45b48d195168477fed9c">Property::latent_heat</a>, 
+<a class="el" href="namespaceadamantine.html#a1df21a13a823d00805811d3d3441a7fca7ef776745e9a686124d84f6678421153">Property::liquidus</a>, 
+<a class="el" href="namespaceadamantine.html#a1df21a13a823d00805811d3d3441a7fca1db8a15cc46ddc4203a8287ab6519cc2">Property::solidus</a>, 
+<br />
+&#160;&#160;<a class="el" href="namespaceadamantine.html#a1df21a13a823d00805811d3d3441a7fca4dfc94d1a202ef6fe450778f95f76d76">Property::specific_heat</a>, 
+<a class="el" href="namespaceadamantine.html#a1df21a13a823d00805811d3d3441a7fca41615c4baa7555513c57fc53f9cf812a">Property::thermal_conductivity</a>, 
+<a class="el" href="namespaceadamantine.html#a1df21a13a823d00805811d3d3441a7fca62e5cef85d46f1a5a2144d9fd463b79e">Property::SIZE</a>
+<br />
  }</td></tr>
 <tr class="separator:a1df21a13a823d00805811d3d3441a7fc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
@@ -132,24 +144,36 @@ Functions</h2></td></tr>
 <tr class="separator:a4c1f49b35dc6b66d7534869a84a49d58"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac498eafab2c29c90d8f7a40c50bf98b0"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceadamantine.html#ac498eafab2c29c90d8f7a40c50bf98b0">ASSERT_THROW</a> (bool cond, std::string const &amp;message)</td></tr>
 <tr class="separator:ac498eafab2c29c90d8f7a40c50bf98b0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a33a043b83e94676ebb28e62f8eaacb24"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceadamantine.html#a33a043b83e94676ebb28e62f8eaacb24">ASSERT_THROW_NOT_IMPLEMENTED</a> ()</td></tr>
+<tr class="separator:a33a043b83e94676ebb28e62f8eaacb24"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Enumeration Type Documentation</h2>
 <a class="anchor" id="ae3597dafc3ea1167ceb3147d2d9fa34e"></a>
 <div class="memitem">
 <div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
       <table class="memname">
         <tr>
           <td class="memname">enum <a class="el" href="namespaceadamantine.html#ae3597dafc3ea1167ceb3147d2d9fa34e">adamantine::MaterialState</a></td>
         </tr>
       </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">strong</span></span>  </td>
+  </tr>
+</table>
 </div><div class="memdoc">
 <p>Enum on the possible materials. </p>
 <table class="fieldtable">
-<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a class="anchor" id="ae3597dafc3ea1167ceb3147d2d9fa34eab737427fa963eac6f4b330a89a98b138"></a>powder&#160;</td><td class="fielddoc">
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a class="anchor" id="ae3597dafc3ea1167ceb3147d2d9fa34ea1c3a7de8ed1f4f0ef7eafaf4aba05515"></a>powder&#160;</td><td class="fielddoc">
 </td></tr>
-<tr><td class="fieldname"><a class="anchor" id="ae3597dafc3ea1167ceb3147d2d9fa34eae577b2e3116108d7be453fa96ffb95e6"></a>solid&#160;</td><td class="fielddoc">
+<tr><td class="fieldname"><a class="anchor" id="ae3597dafc3ea1167ceb3147d2d9fa34eaec03f91ae56e478455e3786e91559194"></a>solid&#160;</td><td class="fielddoc">
 </td></tr>
-<tr><td class="fieldname"><a class="anchor" id="ae3597dafc3ea1167ceb3147d2d9fa34ea91b7587330f7f7fb8f948071d7dc364b"></a>liquid&#160;</td><td class="fielddoc">
+<tr><td class="fieldname"><a class="anchor" id="ae3597dafc3ea1167ceb3147d2d9fa34eaf80b6383d767feb24333c7d460bed98c"></a>liquid&#160;</td><td class="fielddoc">
+</td></tr>
+<tr><td class="fieldname"><a class="anchor" id="ae3597dafc3ea1167ceb3147d2d9fa34ea62e5cef85d46f1a5a2144d9fd463b79e"></a>SIZE&#160;</td><td class="fielddoc">
 </td></tr>
 </table>
 
@@ -160,23 +184,39 @@ Functions</h2></td></tr>
 <a class="anchor" id="a1df21a13a823d00805811d3d3441a7fc"></a>
 <div class="memitem">
 <div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
       <table class="memname">
         <tr>
           <td class="memname">enum <a class="el" href="namespaceadamantine.html#a1df21a13a823d00805811d3d3441a7fc">adamantine::Property</a></td>
         </tr>
       </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">strong</span></span>  </td>
+  </tr>
+</table>
 </div><div class="memdoc">
 <p>Enum on the possible material properties. </p>
 <table class="fieldtable">
-<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a class="anchor" id="a1df21a13a823d00805811d3d3441a7fcae49345a0feea6f2df28427b8762b2002"></a>density&#160;</td><td class="fielddoc">
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a class="anchor" id="a1df21a13a823d00805811d3d3441a7fca35f3675343000d6bb5f10ce451a571a4"></a>density&#160;</td><td class="fielddoc">
 </td></tr>
-<tr><td class="fieldname"><a class="anchor" id="a1df21a13a823d00805811d3d3441a7fcaaae6e15efbebac7610ded7d9c1b37119"></a>specific_heat&#160;</td><td class="fielddoc">
+<tr><td class="fieldname"><a class="anchor" id="a1df21a13a823d00805811d3d3441a7fca178e9ac007bf45b48d195168477fed9c"></a>latent_heat&#160;</td><td class="fielddoc">
 </td></tr>
-<tr><td class="fieldname"><a class="anchor" id="a1df21a13a823d00805811d3d3441a7fcaab6865c0b23e86a50c16f4c65381ab16"></a>thermal_conductivity&#160;</td><td class="fielddoc">
+<tr><td class="fieldname"><a class="anchor" id="a1df21a13a823d00805811d3d3441a7fca7ef776745e9a686124d84f6678421153"></a>liquidus&#160;</td><td class="fielddoc">
+</td></tr>
+<tr><td class="fieldname"><a class="anchor" id="a1df21a13a823d00805811d3d3441a7fca1db8a15cc46ddc4203a8287ab6519cc2"></a>solidus&#160;</td><td class="fielddoc">
+</td></tr>
+<tr><td class="fieldname"><a class="anchor" id="a1df21a13a823d00805811d3d3441a7fca4dfc94d1a202ef6fe450778f95f76d76"></a>specific_heat&#160;</td><td class="fielddoc">
+</td></tr>
+<tr><td class="fieldname"><a class="anchor" id="a1df21a13a823d00805811d3d3441a7fca41615c4baa7555513c57fc53f9cf812a"></a>thermal_conductivity&#160;</td><td class="fielddoc">
+</td></tr>
+<tr><td class="fieldname"><a class="anchor" id="a1df21a13a823d00805811d3d3441a7fca62e5cef85d46f1a5a2144d9fd463b79e"></a>SIZE&#160;</td><td class="fielddoc">
 </td></tr>
 </table>
 
-<p>Definition at line <a class="el" href="types_8hh_source.html#l00038">38</a> of file <a class="el" href="types_8hh_source.html">types.hh</a>.</p>
+<p>Definition at line <a class="el" href="types_8hh_source.html#l00039">39</a> of file <a class="el" href="types_8hh_source.html">types.hh</a>.</p>
 
 </div>
 </div>
@@ -213,7 +253,7 @@ Functions</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Definition at line <a class="el" href="utils_8hh_source.html#l00018">18</a> of file <a class="el" href="utils_8hh_source.html">utils.hh</a>.</p>
+<p>Definition at line <a class="el" href="utils_8hh_source.html#l00019">19</a> of file <a class="el" href="utils_8hh_source.html">utils.hh</a>.</p>
 
 </div>
 </div>
@@ -249,7 +289,32 @@ Functions</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Definition at line <a class="el" href="utils_8hh_source.html#l00023">23</a> of file <a class="el" href="utils_8hh_source.html">utils.hh</a>.</p>
+<p>Definition at line <a class="el" href="utils_8hh_source.html#l00024">24</a> of file <a class="el" href="utils_8hh_source.html">utils.hh</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a33a043b83e94676ebb28e62f8eaacb24"></a>
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void adamantine::ASSERT_THROW_NOT_IMPLEMENTED </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="utils_8hh_source.html#l00039">39</a> of file <a class="el" href="utils_8hh_source.html">utils.hh</a>.</p>
 
 </div>
 </div>

@@ -6,6 +6,12 @@
 \form#5:$F$
 \form#6:$I-\tau M^{-1} \frac{F}{dy}$
 \form#7:$\tau$
-\form#8:$ dst = -\nabla k \nabla src $
-\form#9:$(0,1)$
-\form#10:$(0, \infty)$
+\form#8:$ -\frac{H_{liquidus}}{\rho C_P} + T_{liquidus} $
+\form#9:$ \frac{T_{liquidus}-T_{solidus}}{\mathcal{L}} $
+\form#10:$ -H_{solidus} \frac{T_{liquidus}-T_{solidus}}{\mathcal{L}} + T_{solidus} $
+\form#11:$ T = \alpha H + \beta $
+\form#12:$ \alpha $
+\form#13:$ \beta $
+\form#14:$ dst = -\nabla k \nabla src $
+\form#15:$(0,1)$
+\form#16:$(0, \infty)$
