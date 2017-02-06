@@ -75,7 +75,6 @@
           Note that the name of the input can be chosen arbitrary.
           <i>my_input_file</i> is as valid as <i>input.info</i> <br>
           </p>
-          <!--
           <h3>Input</h3>
             <p>
             The following options are available:
@@ -99,7 +98,37 @@
                 width (only in 3D) (default value: 10) </li>
             </ul>
             </p>
-           -->
+            <h4>refinement</h4>
+            <p>
+            <ul>
+              <li> <strong> n_heat_refinements </strong> number of
+                coarsening/refinement to execute (defaul value: 2) </li>
+              <li> <strong> heat_cell_ratio </strong> this is the ratio (n new
+                cells)/(n old cells) after heat refinement (default value: 1)
+              </li>
+              <li> <strong> n_beam_refinements </strong> number of times the
+                cells on the paths of the beams are refined (default value: 2)
+              </li>
+              <li> <strong> max_level </strong> maximum number of times  a cell
+                can be refined </li>
+              <li> <strong> verbose </strong> print the number of degrees of
+                freedom after refinement (default value: false)
+            </ul>
+            </p>
+            <h4>materials</h4>
+            <p>
+            <ul>
+              <li> <strong> n_materials </strong> number of materials </li>
+              <li> <strong> material_X </strong> property tree for the material with
+                number X </li>
+              <li> <strong> material_X.Y </strong> property tree where Y is
+                either liquid, powder, or solid (optional) </li>
+              <li> <strong> material.X.Y.Z </strong> Z is either  density, 
+                specific_heat or thermal conductivity (optional) </li>
+              <li> <strong> material.X.A </strong> A is either solidus,
+                liquidus, or latent_heat </li>
+            </ul>
+            </p>
       </section>
     </div>
     <footer>
