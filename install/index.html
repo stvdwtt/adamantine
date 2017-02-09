@@ -129,6 +129,79 @@
                 liquidus, or latent_heat </li>
             </ul>
             </p>
+            <h4>sources</h4>
+            <p>
+            <ul>
+              <li> <strong> n_beams </strong> number of electron beams </li>
+              <li> <strong> beam_X </strong> property tree for the beam with
+                number X </li>
+              <li> <strong> beam_X.depth </strong> maximum depth reached by the
+                electron beam in meter </li>
+              <li> <strong> beam_X.energy_conversion_efficiency </strong>
+                energy conversion efficiency of the beam. Number between 0 and
+                1. </li>
+              <li> <strong> beam_X.control_efficiency </strong> control 
+                efficiency of the neam. Number between 0 and 1. </li>
+              <li> <strong> beam_X.diameter </strong> diameter of the beam in
+                meter (default value: 2e-3). </li>
+              <li> <strong> beam_X.max_power </strong> power of the beam in
+                watt (optional). </li>
+              <li> <strong> beam_X.current </strong> current used to generate
+                the electron beam in ampere (optional). </li>
+              <li> <strong> beam_X.voltage </strong> voltage used to generate
+                the electron beam in volt (optional). </li>
+              <li> <strong> beam_X.abscissa </strong> abscissa of the position
+                of the beam over time.
+              <li> <strong> beam_X.ordinate </strong> ordinate of the position
+                of the beam over time (only in 3D). </li>
+            </ul>
+            </p>
+            <h4>time_stepping</h4>
+            <p>
+            <ul>
+              <li> <strong> method </strong> name of the method to use for the
+                time integration. </li>
+              <li> <strong> duration </strong> duration of the simulation in
+                second. </li>
+              <li> <strong> time_step </strong> length of the time steps used
+                for the simulation in second. </li>
+              <li> <strong> max_iteration </strong> if the method used is
+                implicit, maximum number of iterations of the solver (default
+                value: 1000). </li>
+              <li> <strong> tolerance </strong> if the method used is implicit,
+                tolerance of the solver (default value 1e-12). </li>
+              <li> <strong> right_preconditioner </strong> if the method used
+                is implicit, set left or right preconditioning for the solver
+                (default value: false). </li>
+              <li> <strong> n_tmp_vectors </strong> if the method used is
+                implicit and the solver is GMRES, maximum number of temporary 
+                vectors to save (default value: 30). </li>
+              <li> <strong> newton_max_iteration </strong> if the method used
+                is implicit, maximum number of iterations of the Newton solver
+                (default value: 100). </li>
+              <li> <strong> newton_tolerance </strong> if the method used is
+                implicit, tolerance of the Newton solver (default value: 1e-6).
+              </li>
+              <li> <strong> jfnk </strong> if the method used is implicit, set
+                Jacobian-Free Newton Krylov method on or off (default value:
+                false) </li>
+            </ul>
+            </p>
+            <h4>post_processor</h4>
+            <p>
+            <ul>
+              <li> <strong> file_name </strong> prefix of output files. </li>
+            </ul>
+            </p>
+            <h4>discretization</h4>
+            <p>
+            <ul>
+              <li> <strong> fe_degree </strong> degree of the finite element
+                used. </li>
+              <li> <strong> quadrature </strong> quadrature used (default
+                value: gauss). </li>
+            </ul>
+            </p>
       </section>
     </div>
     <footer>
