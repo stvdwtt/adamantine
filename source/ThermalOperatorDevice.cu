@@ -141,15 +141,10 @@ __device__ void LocalThermalOperatorDevice<dim, fe_degree>::operator()(
   dealii::CUDAWrappers::FEEvaluation<dim, fe_degree, fe_degree + 1, 1, double>
       fe_eval(cell, gpu_data, shared_data);
   fe_eval.read_dof_values(src);
-  fe_eval.evaluate(true, true);
-
-  // Temporary hard-coded values
-  double thermal_conductivity = 1.0; // _thermal_conductivity[pos]
-  double inv_rho_cp = 1.0;           // _inv_rho_cp[pos]
-
-  fe_eval.apply_for_each_quad_point(
-      ThermalOperatorQuad<dim, fe_degree>(inv_rho_cp, thermal_conductivity));
-  fe_eval.integrate(true, true);
+  fe_eval.evaluate(false, true);
+  fe_eval.apply_for_each_quad_point(ThermalOperatorQuad<dim, fe_degree>(
+      _inv_rho_cp[pos], _thermal_conductivity[pos]));
+  fe_eval.integrate(false, true);
   fe_eval.distribute_local_to_global(dst);
 }
 } // namespace
@@ -159,8 +154,7 @@ namespace adamantine
 template <int dim, int fe_degree, typename MemorySpaceType>
 ThermalOperatorDevice<dim, fe_degree, MemorySpaceType>::ThermalOperatorDevice(
     MPI_Comm const &communicator,
-    std::shared_ptr<MaterialProperty<dim>> material_properties,
-    std::vector<std::shared_ptr<HeatSource<dim>>> heat_sources)
+    std::shared_ptr<MaterialProperty<dim>> material_properties)
     : _communicator(communicator), _m(0), _n_owned_cells(0),
       _material_properties(material_properties),
       _inverse_mass_matrix(
@@ -252,12 +246,8 @@ void ThermalOperatorDevice<dim, fe_degree, MemorySpaceType>::vmult_add(
     dealii::LA::distributed::Vector<double, MemorySpaceType> &dst,
     dealii::LA::distributed::Vector<double, MemorySpaceType> const &src) const
 {
-  // LocalThermalOperatorDevice<dim, fe_degree> local_operator(
-  //      _inv_rho_cp.get_values(), _thermal_conductivity.get_values());
-  // Temp values
   LocalThermalOperatorDevice<dim, fe_degree> local_operator(
-      _powder_ratio.get_values(), _powder_ratio.get_values());
-
+      _inv_rho_cp.get_values(), _thermal_conductivity.get_values());
   _matrix_free.cell_loop(local_operator, src, dst);
   _matrix_free.copy_constrained_values(src, dst);
 }
@@ -273,25 +263,23 @@ void ThermalOperatorDevice<dim, fe_degree, MemorySpaceType>::Tvmult_add(
 
 template <int dim, int fe_degree, typename MemorySpaceType>
 void ThermalOperatorDevice<dim, fe_degree, MemorySpaceType>::
-    extract_stateful_material_properties(
-        dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host>
-            const &temperature)
+    evaluate_material_properties(
+        dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host> const
+            &temperature)
 {
-  // Update the material properties (is this needed here?)
-  //_material_properties->update(*_dof_handler, temperature);
+  // Update the material properties
+  _material_properties->update(_matrix_free.get_dof_handler(), temperature);
 
   unsigned int const n_coefs =
       dealii::Utilities::pow(fe_degree + 1, dim) * _n_owned_cells;
-
-  _powder_ratio.reinit(n_coefs);
-  //_material_id.reinit(n_coefs);
-
-  dealii::LA::ReadWriteVector<double> powder_ratio_host(n_coefs);
-  //dealii::LA::ReadWriteVector<dealii::types::material_id> material_id_host(
-  //    n_coefs);
+  _inv_rho_cp.reinit(n_coefs);
+  _thermal_conductivity.reinit(n_coefs);
+  dealii::LA::ReadWriteVector<double> inv_rho_cp_host(n_coefs);
+  dealii::LA::ReadWriteVector<double> th_conductivity_host(n_coefs);
 
   unsigned int constexpr n_dofs_1d = fe_degree + 1;
-  unsigned int constexpr n_q_points_per_cell = dealii::Utilities::pow(n_dofs_1d, dim);
+  unsigned int constexpr n_q_points_per_cell =
+      dealii::Utilities::pow(n_dofs_1d, dim);
   auto graph = _matrix_free.get_colored_graph();
   unsigned int const n_colors = graph.size();
   for (unsigned int color = 0; color < n_colors; ++color)
@@ -305,22 +293,27 @@ void ThermalOperatorDevice<dim, fe_degree, MemorySpaceType>::
     for (unsigned int cell_id = 0; cell_id < n_cells; ++cell_id)
     {
       auto cell = graph[color][cell_id];
+      double const cell_inv_rho_cp =
+          1. / (_material_properties->get(cell, StateProperty::density) *
+                _material_properties->get(cell, StateProperty::specific_heat));
+      _inv_rho_cp_cells[cell] = cell_inv_rho_cp;
+      double const cell_th_conductivity =
+          _material_properties->get(cell, StateProperty::thermal_conductivity);
       for (unsigned int i = 0; i < n_q_points_per_cell; ++i)
       {
         unsigned int const pos =
-                dealii::CUDAWrappers::local_q_point_id_host<dim, double>(
+            dealii::CUDAWrappers::local_q_point_id_host<dim, double>(
                 cell_id, gpu_data_host, n_q_points_per_cell, i);
-        powder_ratio_host[pos] =
-            _material_properties->get_state_ratio(cell, MaterialState::powder);
-
-        //material_id_host[pos] = _material_properties->get_material_id(cell);
+        inv_rho_cp_host[pos] = cell_inv_rho_cp;
+        th_conductivity_host[pos] = cell_th_conductivity;
       }
     }
   }
 
   // Copy the coefficient to the host
-  _powder_ratio.import(powder_ratio_host, dealii::VectorOperation::insert);
-  //_material_id.import(material_id_host, dealii::VectorOperation::insert);
+  _inv_rho_cp.import(inv_rho_cp_host, dealii::VectorOperation::insert);
+  _thermal_conductivity.import(th_conductivity_host,
+                               dealii::VectorOperation::insert);
 }
 
 template <int dim, int fe_degree, typename MemorySpaceType>
