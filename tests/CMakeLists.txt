@@ -50,6 +50,12 @@ list(APPEND
      test_mechanical_operator
      test_mechanical_physics
      )
+     
+ set(OTHER_TESTS "")
+ list(APPEND
+      OTHER_TESTS
+      test_full_IR_data_projection
+      )
 
 foreach(TEST_NAME ${UNIT_TESTS})
   adamantine_ADD_BOOST_TEST(${TEST_NAME})
@@ -70,6 +76,10 @@ if (ADAMANTINE_ENABLE_DEALII_WEAK_FORMS)
     adamantine_ADD_BOOST_TEST(${TEST_NAME})
   endforeach()
 endif()
+
+foreach(TEST_NAME ${OTHER_TESTS})
+  adamantine_ADD_BOOST_TEST(${TEST_NAME})
+endforeach()
 
 adamantine_COPY_INPUT_FILE(demo_316_short.info tests/data)
 adamantine_COPY_INPUT_FILE(amr_test.info tests/data)

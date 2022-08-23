@@ -363,59 +363,72 @@ RayTracing::RayTracing(boost::property_tree::ptree const &experiment_database)
                                                  std::to_string(camera_id))),
                              frame_regex, std::to_string(frame));
       std::string error_message = "The file " + filename + " does not exist.";
+
       ASSERT(boost::filesystem::exists(filename), error_message.c_str());
 
       // Read and parse the file
       std::ifstream file;
       file.open(filename);
       std::string line;
+
+      // Skip the header line
+      std::getline(file, line);
+
       while (std::getline(file, line))
       {
-        std::size_t pos = 0;
-        std::size_t last_pos = 0;
-        std::size_t line_length = line.length();
-        unsigned int i = 0;
-        dealii::Point<dim> point;
-        dealii::Tensor<1, dim> direction;
-        double value = 0.;
-        while (last_pos < line_length + 1)
+        // Check that the line isn't entirely whitespace
+        if (!std::all_of(line.begin(), line.end(), isspace))
         {
-          pos = line.find_first_of(",", last_pos);
-          // If no comma was found that we read until the end of the file
-          if (pos == std::string::npos)
+          std::size_t pos = 0;
+          std::size_t last_pos = 0;
+          std::size_t line_length = line.length();
+          unsigned int i = 0;
+          dealii::Point<dim> point;
+          dealii::Tensor<1, dim> direction;
+          double value = 0.;
+          std::cout << "line length: " << line_length << " " << line
+                    << std::endl;
+          while (last_pos < line_length + 1)
           {
-            pos = line_length;
+            pos = line.find_first_of(",", last_pos);
+            // If no comma was found that we read until the end of the file
+            if (pos == std::string::npos)
+            {
+              pos = line_length;
+            }
+
+            if (pos != last_pos)
+            {
+              char *end = line.data() + pos;
+              if (i < dim)
+              {
+                point[i] = std::strtod(line.data() + last_pos, &end);
+              }
+              else if (i < 2 * dim)
+              {
+                direction[i - dim] = std::strtod(line.data() + last_pos, &end);
+              }
+              else
+              {
+                value = std::strtod(line.data() + last_pos, &end);
+              }
+
+              ++i;
+            }
+
+            last_pos = pos + 1;
           }
 
-          if (pos != last_pos)
-          {
-            char *end = line.data() + pos;
-            if (i < dim)
-            {
-              point[i] = std::strtod(line.data() + last_pos, &end);
-            }
-            else if (i < 2 * dim)
-            {
-              direction[i - dim] = std::strtod(line.data() + last_pos, &end);
-            }
-            else
-            {
-              value = std::strtod(line.data() + last_pos, &end);
-            }
-
-            ++i;
-          }
-
-          last_pos = pos + 1;
+          Ray<dim> ray{point, direction};
+          rays_one_frame.push_back(ray);
+          values_one_frame.push_back(value);
+          std::cout << "point: " << point << " direction: " << direction
+                    << " value: " << value << std::endl;
         }
-
-        Ray<dim> ray{point, direction};
-        rays_one_frame.push_back(ray);
-        values_one_frame.push_back(value);
       }
+      _rays_all_frames[frame - first_frame] = rays_one_frame;
+      _values_all_frames[frame - first_frame] = values_one_frame;
     }
-    _rays_all_frames[frame - first_frame] = rays_one_frame;
-    _values_all_frames[frame - first_frame] = values_one_frame;
   }
 }
 
@@ -465,9 +478,12 @@ RayTracing::get_intersection(dealii::DoFHandler<3> const &dof_handler,
   auto constexpr reference_cell = dealii::ReferenceCells::get_hypercube<dim>();
   double constexpr tolerance = 1e-12;
   unsigned int ii = 0;
+
+  // NOTE: Something may not be right here
   for (unsigned int i = 0; i < n_rays; ++i)
   {
     points_values.values[ii] = _values_all_frames[frame][i];
+    std::cout << "points_values[ii]: " << points_values.values[ii] << std::endl;
     for (int j = offset[i]; j < offset[i + 1]; ++j)
     {
       auto const &cell = cell_iterators[indices[j]];

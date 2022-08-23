@@ -133,29 +133,43 @@ BOOST_AUTO_TEST_CASE(read_experimental_data_ray_tracing_from_file)
   boost::property_tree::ptree experiment_database;
   experiment_database.put("file",
                           "raytracing_experimental_data_#camera_#frame.csv");
-  experiment_database.put("last_frame", 0);
+  experiment_database.put("last_frame", 1);
   experiment_database.put("first_camera_id", 0);
   experiment_database.put("last_camera_id", 0);
   adamantine::RayTracing ray_tracing(experiment_database);
 
   // Compute the intersection points
-  unsigned int frame = 0;
-  auto points_values = ray_tracing.get_intersection(dof_handler, frame);
+  for (unsigned int frame = 0; frame < 2; ++frame)
+  {
+    auto points_values = ray_tracing.get_intersection(dof_handler, frame);
 
-  // Reference solution
-  std::vector<double> values_ref = {1, 2, 3, 5};
-  std::vector<dealii::Point<3>> points_ref;
-  points_ref.emplace_back(0., 0.1, 0.2);
-  points_ref.emplace_back(1., 0.1, 0.);
-  points_ref.emplace_back(1., 0.5, 0.);
-  points_ref.emplace_back(1., 0.5, 0.5);
-
-  if (dealii::Utilities::MPI::this_mpi_process(communicator) == 0)
-    for (unsigned int i = 0; i < values_ref.size(); ++i)
+    // Reference solution
+    std::vector<double> values_ref;
+    std::vector<dealii::Point<3>> points_ref;
+    if (frame == 0)
     {
-      BOOST_TEST(points_values.values[i] == values_ref[i]);
-      BOOST_TEST(points_values.points[i] == points_ref[i]);
+      values_ref.emplace_back(1);
+      values_ref.emplace_back(2);
+      values_ref.emplace_back(3);
+      values_ref.emplace_back(5);
+
+      points_ref.emplace_back(0., 0.1, 0.2);
+      points_ref.emplace_back(1., 0.1, 0.);
+      points_ref.emplace_back(1., 0.5, 0.);
+      points_ref.emplace_back(1., 0.5, 0.5);
     }
+    else
+    {
+      // No intersections
+    }
+
+    if (dealii::Utilities::MPI::this_mpi_process(communicator) == 0)
+      for (unsigned int i = 0; i < values_ref.size(); ++i)
+      {
+        BOOST_TEST(points_values.values[i] == values_ref[i]);
+        BOOST_TEST(points_values.points[i] == points_ref[i]);
+      }
+  }
 }
 
 BOOST_AUTO_TEST_CASE(timestamp, *utf::tolerance(1e-12))
