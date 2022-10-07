@@ -196,9 +196,8 @@ void PostProcessor<dim>::mechanical_dataout(
                             displacement_data_component_interpretation);
 
   // Add the strain tensor to the output
-  /*
+
   _data_out.add_data_vector(*_mechanical_dof_handler, displacement, strain);
-  */
 
   // TODO add the stress tensor
 }

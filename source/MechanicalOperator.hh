@@ -98,6 +98,10 @@ private:
    */
   bool _bilinear_form_output = true;
   /**
+   * Whether to include a gravitional body force in the calculation.
+   */
+  bool _include_gravity = false;
+  /**
    * List of initial temperatures of the material. If the length of the vector
    * is nonzero, we solve a themo-mechanical problem. Otherwise, we solve a
    * mechanical only problem. The vector index refers to the user index for a
@@ -105,10 +109,6 @@ private:
    * temperature is _initial_temperatures[1]).
    */
   std::vector<double> _initial_temperatures;
-  /**
-   * Whether to include a gravitional body force in the calculation.
-   */
-  bool _include_gravity;
   /**
    * Reference to the MaterialProperty from MechanicalPhysics.
    */

@@ -56,7 +56,7 @@ void MechanicalPhysics<dim, MemorySpaceType>::setup_dofs()
                                                   _affine_constraints);
   // TODO For now only Dirichlet boundary condition
   dealii::VectorTools::interpolate_boundary_values(
-      _dof_handler, 0, dealii::Functions::ZeroFunction<dim>(dim),
+      _dof_handler, 4, dealii::Functions::ZeroFunction<dim>(dim),
       _affine_constraints);
   _affine_constraints.close();
 

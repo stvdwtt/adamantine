@@ -21,32 +21,15 @@
 
 namespace adamantine
 {
-namespace
-{
-// TODO Find a place for this
-template <int dim>
-class RightHandSide : public dealii::TensorFunction<1, dim, double>
-{
-public:
-  dealii::Tensor<1, dim, double>
-  value(const dealii::Point<dim> & /*p*/) const override
-  {
-    dealii::Tensor<1, dim, double> out;
-    out[axis<dim>::z] = -10.;
-
-    return out;
-  }
-};
-} // namespace
-
 template <int dim, typename MemorySpaceType>
 MechanicalOperator<dim, MemorySpaceType>::MechanicalOperator(
     MPI_Comm const &communicator,
     MaterialProperty<dim, MemorySpaceType> &material_properties,
     std::vector<double> const initial_temperatures, bool include_gravity)
-    : _communicator(communicator), _initial_temperatures(initial_temperatures),
-      _material_properties(material_properties),
-      _include_gravity(include_gravity)
+    : _communicator(communicator), _include_gravity(include_gravity),
+      _initial_temperatures(initial_temperatures),
+      _material_properties(material_properties)
+
 {
 }
 
@@ -162,19 +145,26 @@ void MechanicalOperator<dim, MemorySpaceType>::assemble_system()
 
   _system_rhs.reinit(_dof_handler->locally_owned_dofs(), _communicator);
   auto const test_val = test_ss.value();
-  dealiiWeakForms::WeakForms::VectorFunctionFunctor<dim> const rhs_coeff(
-      "f", "\\mathbf{f}");
-  RightHandSide<dim> const rhs;
 
   // Assemble the bilinear form
   dealiiWeakForms::WeakForms::MatrixBasedAssembler<dim> assembler;
 
-  std::unique_ptr<dealii::hp::FEValues<dim>> temperature_hp_fe_values;
-
+  // FIXME the formulation below is more widespread but it doesn't work in
+  // dealii-weak_forms yet. Keeping the implementation to use it in the
+  // future. assembler +=
+  //     dealiiWeakForms::WeakForms::bilinear_form(test_grad, lambda + mu,
+  //                                               trial_grad)
+  //         .dV() +
+  //     dealiiWeakForms::WeakForms::bilinear_form(test_grad, mu, trial_grad)
+  //         .delta_IJ()
+  //         .dV() -
+  //     dealiiWeakForms::WeakForms::linear_form(test_val,
+  //     rhs_coeff.value(rhs)).dV();
   assembler += dealiiWeakForms::WeakForms::bilinear_form(
                    test_grad, stiffness_tensor, trial_grad)
                    .dV();
 
+  std::unique_ptr<dealii::hp::FEValues<dim>> temperature_hp_fe_values;
   // Now add the appropriate linear form(s) (ie RHS)
 
   // If the initial temperature is positive, we solve the thermoelastic problem.
@@ -225,15 +215,19 @@ void MechanicalOperator<dim, MemorySpaceType>::assemble_system()
                        _temperature(local_dof_indices[i]);
           }
 
+          auto cell_temp = initial_temperature + delta_T;
+          if (cell_temp > 1675.0)
+          {
+            delta_T = 0.0;
+            cell->set_user_index(1);
+          }
+
           double alpha = this->_material_properties.get_mechanical_property(
               cell, StateProperty::thermal_expansion_coef);
           double lambda = this->_material_properties.get_mechanical_property(
               cell, StateProperty::lame_first_parameter);
           double mu = this->_material_properties.get_mechanical_property(
               cell, StateProperty::lame_second_parameter);
-
-          std::cout << delta_T << " " << alpha << " " << lambda << " " << mu
-                    << std::endl;
 
           // Get the identity 2nd-order tensor
           auto B = dealii::Physics::Elasticity::StandardTensors<dim>::I;
@@ -254,21 +248,27 @@ void MechanicalOperator<dim, MemorySpaceType>::assemble_system()
   // If gravity is included, add a gravitational body force
   if (_include_gravity)
   {
-    std::cout << "Adding gravity term..." << std::endl;
+    std::cout << "Adding a gravitational body force" << std::endl;
 
-    // FIXME the formulation below is more widespread but it doesn't work in
-    // dealii-weak_forms yet. Keeping the implementation to use it in the
-    // future. assembler +=
-    //     dealiiWeakForms::WeakForms::bilinear_form(test_grad, lambda + mu,
-    //                                               trial_grad)
-    //         .dV() +
-    //     dealiiWeakForms::WeakForms::bilinear_form(test_grad, mu, trial_grad)
-    //         .delta_IJ()
-    //         .dV() -
-    //     dealiiWeakForms::WeakForms::linear_form(test_val,
-    //     rhs_coeff.value(rhs)).dV();
+    // Create a functor to evaluate the body force
+    dealiiWeakForms::WeakForms::VectorFunctor<dim> const body_force_coeff(
+        "f", "\\mathbf{f}");
+    auto body_force_vector = body_force_coeff.template value<double, dim>(
+        [this](dealii::FEValuesBase<dim> const &fe_values,
+               unsigned int const /*q_point */) {
+          auto const &cell = fe_values.get_cell();
+          // Note that that the density is independent of the temperature
+          double density = this->_material_properties.get_mechanical_property(
+              cell, StateProperty::density_s);
+          double const g = -9.80665;
+
+          dealii::Tensor<1, dim, double> body_force;
+          body_force[axis<dim>::z] = density * g;
+
+          return body_force;
+        });
     assembler -=
-        dealiiWeakForms::WeakForms::linear_form(test_val, rhs_coeff.value(rhs))
+        dealiiWeakForms::WeakForms::linear_form(test_val, body_force_vector)
             .dV();
   }
 

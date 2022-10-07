@@ -64,8 +64,8 @@ void output_pvtu(
     std::unique_ptr<adamantine::MechanicalPhysics<dim, MemorySpaceType>> const
         &mechanical_physics,
 #endif
-    dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host>
-        &displacement,
+    [[maybe_unused]] dealii::LA::distributed::Vector<
+        double, dealii::MemorySpace::Host> &displacement,
     adamantine::MaterialProperty<dim, MemorySpaceType> const
         &material_properties,
     std::vector<adamantine::Timer> &timers)
@@ -838,7 +838,8 @@ run(MPI_Comm const &communicator, boost::property_tree::ptree const &database,
   // Extract the physics property tree
   boost::property_tree::ptree physics_database = database.get_child("physics");
   bool const use_thermal_physics = physics_database.get<bool>("thermal");
-  bool const use_mechanical_physics = physics_database.get<bool>("mechanical");
+  [[maybe_unused]] bool const use_mechanical_physics =
+      physics_database.get<bool>("mechanical");
 
   // Extract the discretization property tree
   boost::property_tree::ptree discretization_database =
@@ -1005,6 +1006,7 @@ run(MPI_Comm const &communicator, boost::property_tree::ptree const &database,
 #endif
   while (time < duration)
   {
+    std::cout << "time: " << time << std::endl;
 #ifdef ADAMANTINE_WITH_CALIPER
     CALI_CXX_MARK_LOOP_ITERATION(main_loop_id, n_time_step - 1);
 #endif
@@ -1092,22 +1094,25 @@ run(MPI_Comm const &communicator, boost::property_tree::ptree const &database,
     // Solve the (thermo-)mechanical problem
     if (use_mechanical_physics)
     {
-      if (use_thermal_physics)
+      if (n_time_step % time_steps_output == 0)
       {
-        std::cout << "Thermomechanical solve..." << std::endl;
-        dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host>
-            temperature_host(temperature.get_partitioner());
-        temperature_host.import(temperature, dealii::VectorOperation::insert);
-        mechanical_physics->setup_dofs(thermal_physics->get_dof_handler(),
-                                       temperature_host);
+        if (use_thermal_physics)
+        {
+          std::cout << "Thermomechanical solve..." << std::endl;
+          dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host>
+              temperature_host(temperature.get_partitioner());
+          temperature_host.import(temperature, dealii::VectorOperation::insert);
+          mechanical_physics->setup_dofs(thermal_physics->get_dof_handler(),
+                                         temperature_host);
+        }
+        else
+        {
+          std::cout << "Mechanics only solve..." << std::endl;
+          mechanical_physics->setup_dofs();
+        }
+        displacement = mechanical_physics->solve();
+        std::cout << "Complete." << std::endl;
       }
-      else
-      {
-        std::cout << "Mechanics only solve..." << std::endl;
-        mechanical_physics->setup_dofs();
-      }
-      displacement = mechanical_physics->solve();
-      std::cout << "Complete." << std::endl;
     }
 #endif
 
