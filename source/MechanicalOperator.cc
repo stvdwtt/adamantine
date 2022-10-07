@@ -43,8 +43,8 @@ template <int dim, typename MemorySpaceType>
 MechanicalOperator<dim, MemorySpaceType>::MechanicalOperator(
     MPI_Comm const &communicator,
     MaterialProperty<dim, MemorySpaceType> &material_properties,
-    double const initial_temperature, bool include_gravity)
-    : _communicator(communicator), _initial_temperature(initial_temperature),
+    std::vector<double> const initial_temperatures, bool include_gravity)
+    : _communicator(communicator), _initial_temperatures(initial_temperatures),
       _material_properties(material_properties),
       _include_gravity(include_gravity)
 {
@@ -178,8 +178,9 @@ void MechanicalOperator<dim, MemorySpaceType>::assemble_system()
   // Now add the appropriate linear form(s) (ie RHS)
 
   // If the initial temperature is positive, we solve the thermoelastic problem.
-  if (_initial_temperature >= 0.)
+  if (_initial_temperatures.size() > 0)
   {
+    std::cout << "Adding thermal expansion term..." << std::endl;
 
     // Create a functor to evaluate the thermal expansion
     temperature_hp_fe_values = std::make_unique<dealii::hp::FEValues<dim>>(
@@ -197,12 +198,17 @@ void MechanicalOperator<dim, MemorySpaceType>::assemble_system()
           // quadrature point using the temperature DoFHandler.
           auto const &cell = fe_values.get_cell();
 
+          // Get the cell user index. "0" means substrate cell, "1" means
+          // deposited cell.
+          const unsigned int user_index = cell->user_index();
+          double initial_temperature = _initial_temperatures.at(user_index);
+
           // Since we use a Triangulation cell to reinitialize the hp::FEValues,
           // it will automatically choose the zero-th finite element.
           temperature_hp_fe_values->reinit(cell);
           auto &temperature_fe_values =
               temperature_hp_fe_values->get_present_fe_values();
-          double delta_T = -_initial_temperature;
+          double delta_T = -initial_temperature;
 
           dealii::DoFAccessor<dim, dim, dim, false> cell_dof(
               &(cell->get_triangulation()), cell->level(), cell->index(),
@@ -226,6 +232,9 @@ void MechanicalOperator<dim, MemorySpaceType>::assemble_system()
           double mu = this->_material_properties.get_mechanical_property(
               cell, StateProperty::lame_second_parameter);
 
+          std::cout << delta_T << " " << alpha << " " << lambda << " " << mu
+                    << std::endl;
+
           // Get the identity 2nd-order tensor
           auto B = dealii::Physics::Elasticity::StandardTensors<dim>::I;
           B *= (3. * lambda + 2 * mu) * alpha * delta_T;
@@ -245,6 +254,8 @@ void MechanicalOperator<dim, MemorySpaceType>::assemble_system()
   // If gravity is included, add a gravitational body force
   if (_include_gravity)
   {
+    std::cout << "Adding gravity term..." << std::endl;
+
     // FIXME the formulation below is more widespread but it doesn't work in
     // dealii-weak_forms yet. Keeping the implementation to use it in the
     // future. assembler +=

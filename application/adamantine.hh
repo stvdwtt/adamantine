@@ -871,6 +871,19 @@ run(MPI_Comm const &communicator, boost::property_tree::ptree const &database,
   double const initial_temperature =
       material_database.get("initial_temperature", 300.);
 
+  // Get the reference temperature(s) for the substrate and deposited
+  // material(s)
+  std::vector<double> material_reference_temps = {initial_temperature};
+  // PropertyTreeInput materials.n_materials
+  double const n_materials = material_database.get<unsigned int>("n_materials");
+  for (unsigned int i = 0; i < n_materials; ++i)
+  {
+    // Use the solidus as the reference temperature
+    double const reference_temperature = material_database.get<double>(
+        "material_" + std::to_string(i) + ".solidus");
+    material_reference_temps.push_back(reference_temperature);
+  }
+
   // Create MechanicalPhysics if necessary
 #ifdef ADAMANTINE_WITH_DEALII_WEAK_FORMS
   std::unique_ptr<adamantine::MechanicalPhysics<dim, MemorySpaceType>>
@@ -879,18 +892,26 @@ run(MPI_Comm const &communicator, boost::property_tree::ptree const &database,
   {
     // PropertyTreeInput discretization.mechanical.fe_degree
     unsigned int const fe_degree =
-        discretization_database.get<unsigned int>("mechanial.fe_degree");
+        discretization_database.get<unsigned int>("mechanical.fe_degree");
+
+    std::cout << "number of reference temps: "
+              << material_reference_temps.size() << std::endl;
+
     mechanical_physics =
         std::make_unique<adamantine::MechanicalPhysics<dim, MemorySpaceType>>(
             communicator, fe_degree, geometry, material_properties,
-            initial_temperature);
+            material_reference_temps);
     post_processor_database.put("mechanical_output", true);
   }
-#endif
 
+  adamantine::PostProcessor<dim> post_processor(
+      communicator, post_processor_database, thermal_physics->get_dof_handler(),
+      mechanical_physics->get_dof_handler());
+#else
   adamantine::PostProcessor<dim> post_processor(
       communicator, post_processor_database,
       thermal_physics->get_dof_handler());
+#endif
 
   dealii::LA::distributed::Vector<double, MemorySpaceType> temperature;
   dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host>
@@ -973,10 +994,11 @@ run(MPI_Comm const &communicator, boost::property_tree::ptree const &database,
   unsigned int const time_steps_output =
       post_processor_database.get("time_steps_between_output", 1);
 
-  double next_refinement_time = time;
   // PropertyTreeInput materials.new_material_temperature
   double const new_material_temperature =
       database.get("materials.new_material_temperature", 300.);
+
+  double next_refinement_time = time;
 
 #ifdef ADAMANTINE_WITH_CALIPER
   CALI_CXX_MARK_LOOP_BEGIN(main_loop_id, "main_loop");
@@ -1072,6 +1094,7 @@ run(MPI_Comm const &communicator, boost::property_tree::ptree const &database,
     {
       if (use_thermal_physics)
       {
+        std::cout << "Thermomechanical solve..." << std::endl;
         dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host>
             temperature_host(temperature.get_partitioner());
         temperature_host.import(temperature, dealii::VectorOperation::insert);
@@ -1080,9 +1103,11 @@ run(MPI_Comm const &communicator, boost::property_tree::ptree const &database,
       }
       else
       {
+        std::cout << "Mechanics only solve..." << std::endl;
         mechanical_physics->setup_dofs();
       }
       displacement = mechanical_physics->solve();
+      std::cout << "Complete." << std::endl;
     }
 #endif
 

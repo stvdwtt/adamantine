@@ -517,9 +517,15 @@ ThermalPhysics<dim, fe_degree, MemorySpaceType, QuadratureType>::ThermalPhysics(
       // sin = 0
       _deposition_cos.push_back(1.);
       _deposition_sin.push_back(0.);
+
+      // Set user index to "0" to denote it as a substrate cell
+      cell->set_user_index(0);
     }
     else
       cell->set_active_fe_index(1);
+
+    // Set user index to "1" to denote it as a non-substrate cell
+    cell->set_user_index(0);
   }
 
   // Set the initial height of the heat source. Right now this is just the
@@ -627,6 +633,9 @@ void ThermalPhysics<dim, fe_degree, MemorySpaceType, QuadratureType>::
             new_deposition_cos[i];
         data_to_transfer[cell_to_id[cell]][n_dofs_per_cell + 1] =
             new_deposition_sin[i];
+
+        // Set the user index to "1" to denote that it is a deposited cell
+        // cell->set_user_index(1);
       }
     }
   }

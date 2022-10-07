@@ -181,12 +181,24 @@ void PostProcessor<dim>::mechanical_dataout(
       displacement_data_component_interpretation(
           dim,
           dealii::DataComponentInterpretation::component_is_part_of_vector);
+
+  if (_mechanical_dof_handler == nullptr)
+  {
+    std::cout << "Mechanical dof handler doesn't exist!" << std::endl;
+  }
+  else
+  {
+    std::cout << "Mechanical dof handler exists!" << std::endl;
+  }
+
   _data_out.add_data_vector(*_mechanical_dof_handler, displacement,
                             displacement_names,
                             displacement_data_component_interpretation);
 
   // Add the strain tensor to the output
+  /*
   _data_out.add_data_vector(*_mechanical_dof_handler, displacement, strain);
+  */
 
   // TODO add the stress tensor
 }
