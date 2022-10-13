@@ -126,6 +126,14 @@ public:
       std::vector<double> const &deposition_sin) = 0;
 
   /**
+   * Mark cells above the given temperature
+   */
+  virtual void mark_cells_above_temperature(
+      const unsigned int index, const double threshold_temperature,
+      dealii::LA::distributed::Vector<double, MemorySpaceType> const
+          temperature) = 0;
+
+  /**
    * Return the cosine of the material deposition angle for the activated cell
    * @p i.
    */

@@ -880,6 +880,7 @@ run(MPI_Comm const &communicator, boost::property_tree::ptree const &database,
   for (unsigned int i = 0; i < n_materials; ++i)
   {
     // Use the solidus as the reference temperature
+    // PropertyTreeInput materials.material_n.solidus
     double const reference_temperature = material_database.get<double>(
         "material_" + std::to_string(i) + ".solidus");
     material_reference_temps.push_back(reference_temperature);
@@ -894,9 +895,6 @@ run(MPI_Comm const &communicator, boost::property_tree::ptree const &database,
     // PropertyTreeInput discretization.mechanical.fe_degree
     unsigned int const fe_degree =
         discretization_database.get<unsigned int>("mechanical.fe_degree");
-
-    std::cout << "number of reference temps: "
-              << material_reference_temps.size() << std::endl;
 
     mechanical_physics =
         std::make_unique<adamantine::MechanicalPhysics<dim, MemorySpaceType>>(
@@ -995,18 +993,17 @@ run(MPI_Comm const &communicator, boost::property_tree::ptree const &database,
   unsigned int const time_steps_output =
       post_processor_database.get("time_steps_between_output", 1);
 
+  double next_refinement_time = time;
+
   // PropertyTreeInput materials.new_material_temperature
   double const new_material_temperature =
       database.get("materials.new_material_temperature", 300.);
-
-  double next_refinement_time = time;
 
 #ifdef ADAMANTINE_WITH_CALIPER
   CALI_CXX_MARK_LOOP_BEGIN(main_loop_id, "main_loop");
 #endif
   while (time < duration)
   {
-    std::cout << "time: " << time << std::endl;
 #ifdef ADAMANTINE_WITH_CALIPER
     CALI_CXX_MARK_LOOP_ITERATION(main_loop_id, n_time_step - 1);
 #endif
@@ -1072,6 +1069,20 @@ run(MPI_Comm const &communicator, boost::property_tree::ptree const &database,
     }
     timers[adamantine::add_material_activate].stop();
 
+    // If thermomechanics are being solved, mark cells that are above the
+    // solidus as cells that should have their reference temperature reset. This
+    // cannot be in the thermomechanics solve because some cells may go above
+    // the solidus and then back below the solidus in the time between
+    // thermomechanical solves.
+    if (use_thermal_physics && use_mechanical_physics)
+    {
+      // Eventually I think this should get calculated with a call to material
+      // properties -- the main question is whether the state of a cell is
+      // "liquid".
+      thermal_physics->mark_cells_above_temperature(
+          1, material_reference_temps[1], temperature);
+    }
+
     // Time can be different than time + time_step if an embedded scheme is
     // used. Note that this is a problem when adding material because it
     // means that the amount of material that needs to be added is not
@@ -1094,11 +1105,12 @@ run(MPI_Comm const &communicator, boost::property_tree::ptree const &database,
     // Solve the (thermo-)mechanical problem
     if (use_mechanical_physics)
     {
+      // Since there is no history dependence in the model, only calculate
+      // mechanics when outputting
       if (n_time_step % time_steps_output == 0)
       {
         if (use_thermal_physics)
         {
-          std::cout << "Thermomechanical solve..." << std::endl;
           dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host>
               temperature_host(temperature.get_partitioner());
           temperature_host.import(temperature, dealii::VectorOperation::insert);
@@ -1107,11 +1119,9 @@ run(MPI_Comm const &communicator, boost::property_tree::ptree const &database,
         }
         else
         {
-          std::cout << "Mechanics only solve..." << std::endl;
           mechanical_physics->setup_dofs();
         }
         displacement = mechanical_physics->solve();
-        std::cout << "Complete." << std::endl;
       }
     }
 #endif

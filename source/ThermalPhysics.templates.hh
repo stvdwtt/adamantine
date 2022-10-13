@@ -522,10 +522,12 @@ ThermalPhysics<dim, fe_degree, MemorySpaceType, QuadratureType>::ThermalPhysics(
       cell->set_user_index(0);
     }
     else
+    {
       cell->set_active_fe_index(1);
 
-    // Set user index to "1" to denote it as a non-substrate cell
-    cell->set_user_index(0);
+      // Set user index to "1" to denote it as a non-substrate cell
+      cell->set_user_index(1);
+    }
   }
 
   // Set the initial height of the heat source. Right now this is just the
@@ -567,6 +569,70 @@ void ThermalPhysics<dim, fe_degree, MemorySpaceType,
   if (_implicit_method == true)
     _implicit_operator->set_inverse_mass_matrix(
         _thermal_operator->get_inverse_mass_matrix());
+}
+
+template <int dim, int fe_degree, typename MemorySpaceType,
+          typename QuadratureType>
+void ThermalPhysics<dim, fe_degree, MemorySpaceType, QuadratureType>::
+    mark_cells_above_temperature(
+        const unsigned int index, const double threshold_temperature,
+        dealii::LA::distributed::Vector<double, MemorySpaceType> const
+            temperature)
+{
+
+  /*
+auto fe = _dof_handler.get_fe_collection();
+
+// Create fe_values
+dealii::hp::FEValues<dim> fe_values_hp(fe, _q_collection,
+                                       dealii::update_values);
+                                       */
+  auto dofs_per_cell = _dof_handler.get_fe().dofs_per_cell;
+  dealii::FEValues<dim> fe_values(_dof_handler.get_fe(), _q_collection,
+                                  dealii::update_values |
+                                      dealii::update_JxW_values);
+
+  unsigned int const n_q_points = _q_collection.max_n_quadrature_points();
+
+  for (auto const &cell : dealii::filter_iterators(
+           _dof_handler.active_cell_iterators(),
+           dealii::IteratorFilters::LocallyOwnedCell(),
+           dealii::IteratorFilters::ActiveFEIndexEqualTo(0)))
+  {
+    if (cell->user_index() == 0)
+    {
+      // auto fe_values = fe_values_hp.select_fe_values(0);
+      fe_values.reinit(cell);
+
+      std::vector<dealii::types::global_dof_index> local_dof_indices(
+          dofs_per_cell);
+
+      cell->get_dof_indices(local_dof_indices);
+
+      double cell_temperature = 0.0;
+      double cell_volume = 0.0;
+      for (unsigned int i = 0; i < dofs_per_cell; ++i)
+      {
+        for (unsigned int q = 0; q < n_q_points; ++q)
+        {
+          // This is substantially over-predicting the temperature. I don't
+          // think is should be a sum over quadrature points and dofs. I think
+          // this is off by a factor of 4.
+          cell_temperature += fe_values.shape_value(i, q) *
+                              temperature(local_dof_indices[i]) *
+                              fe_values.JxW(q);
+          cell_volume += fe_values.shape_value(i, q) * fe_values.JxW(q);
+        }
+      }
+      cell_temperature /= cell_volume;
+
+      // Set the user index
+      if (cell_temperature > threshold_temperature)
+      {
+        cell->set_user_index(index);
+      }
+    }
+  }
 }
 
 template <int dim, int fe_degree, typename MemorySpaceType,

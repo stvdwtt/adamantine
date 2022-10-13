@@ -25,9 +25,9 @@ template <int dim, typename MemorySpaceType>
 MechanicalOperator<dim, MemorySpaceType>::MechanicalOperator(
     MPI_Comm const &communicator,
     MaterialProperty<dim, MemorySpaceType> &material_properties,
-    std::vector<double> const initial_temperatures, bool include_gravity)
+    std::vector<double> const reference_temperatures, bool include_gravity)
     : _communicator(communicator), _include_gravity(include_gravity),
-      _initial_temperatures(initial_temperatures),
+      _reference_temperatures(reference_temperatures),
       _material_properties(material_properties)
 
 {
@@ -168,7 +168,7 @@ void MechanicalOperator<dim, MemorySpaceType>::assemble_system()
   // Now add the appropriate linear form(s) (ie RHS)
 
   // If the initial temperature is positive, we solve the thermoelastic problem.
-  if (_initial_temperatures.size() > 0)
+  if (_reference_temperatures.size() > 0)
   {
     std::cout << "Adding thermal expansion term..." << std::endl;
 
@@ -188,17 +188,18 @@ void MechanicalOperator<dim, MemorySpaceType>::assemble_system()
           // quadrature point using the temperature DoFHandler.
           auto const &cell = fe_values.get_cell();
 
-          // Get the cell user index. "0" means substrate cell, "1" means
-          // deposited cell.
+          // Get the cell user index. These correspond to which element of the
+          // _reference_temperatures list to use for the reference temperature.
+          // For now "0" means substrate cell, "1" means deposited cell.
           const unsigned int user_index = cell->user_index();
-          double initial_temperature = _initial_temperatures.at(user_index);
+          double reference_temperature = _reference_temperatures.at(user_index);
 
           // Since we use a Triangulation cell to reinitialize the hp::FEValues,
           // it will automatically choose the zero-th finite element.
           temperature_hp_fe_values->reinit(cell);
           auto &temperature_fe_values =
               temperature_hp_fe_values->get_present_fe_values();
-          double delta_T = -initial_temperature;
+          double delta_T = -reference_temperature;
 
           dealii::DoFAccessor<dim, dim, dim, false> cell_dof(
               &(cell->get_triangulation()), cell->level(), cell->index(),
@@ -213,13 +214,6 @@ void MechanicalOperator<dim, MemorySpaceType>::assemble_system()
           {
             delta_T += temperature_fe_values.shape_value(i, q_point) *
                        _temperature(local_dof_indices[i]);
-          }
-
-          auto cell_temp = initial_temperature + delta_T;
-          if (cell_temp > 1675.0)
-          {
-            delta_T = 0.0;
-            cell->set_user_index(1);
           }
 
           double alpha = this->_material_properties.get_mechanical_property(
