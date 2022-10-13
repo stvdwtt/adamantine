@@ -879,7 +879,8 @@ run(MPI_Comm const &communicator, boost::property_tree::ptree const &database,
   double const n_materials = material_database.get<unsigned int>("n_materials");
   for (unsigned int i = 0; i < n_materials; ++i)
   {
-    // Use the solidus as the reference temperature
+    // Use the solidus as the reference temperature, in the future we may want
+    // to use something else
     // PropertyTreeInput materials.material_n.solidus
     double const reference_temperature = material_database.get<double>(
         "material_" + std::to_string(i) + ".solidus");
@@ -927,6 +928,9 @@ run(MPI_Comm const &communicator, boost::property_tree::ptree const &database,
 #ifdef ADAMANTINE_WITH_DEALII_WEAK_FORMS
   if (use_mechanical_physics)
   {
+    // For now assume that only the bottom of the domain is fixed in place
+    std::vector<unsigned int> fixed_faces = {4};
+
     if (use_thermal_physics)
     {
       // Thermo-mechanical simulation
@@ -934,12 +938,12 @@ run(MPI_Comm const &communicator, boost::property_tree::ptree const &database,
           temperature_host(temperature.get_partitioner());
       temperature_host.import(temperature, dealii::VectorOperation::insert);
       mechanical_physics->setup_dofs(thermal_physics->get_dof_handler(),
-                                     temperature_host);
+                                     temperature_host, fixed_faces);
     }
     else
     {
       // Mechanical only simulation
-      mechanical_physics->setup_dofs();
+      mechanical_physics->setup_dofs(fixed_faces);
     }
     displacement = mechanical_physics->solve();
   }
@@ -1007,6 +1011,7 @@ run(MPI_Comm const &communicator, boost::property_tree::ptree const &database,
 #ifdef ADAMANTINE_WITH_CALIPER
     CALI_CXX_MARK_LOOP_ITERATION(main_loop_id, n_time_step - 1);
 #endif
+
     if ((time + time_step) > duration)
       time_step = duration - time;
     unsigned int rank = dealii::Utilities::MPI::this_mpi_process(communicator);
@@ -1076,11 +1081,8 @@ run(MPI_Comm const &communicator, boost::property_tree::ptree const &database,
     // thermomechanical solves.
     if (use_thermal_physics && use_mechanical_physics)
     {
-      // Eventually I think this should get calculated with a call to material
-      // properties -- the main question is whether the state of a cell is
-      // "liquid".
-      thermal_physics->mark_cells_above_temperature(
-          1, material_reference_temps[1], temperature);
+      thermal_physics->mark_cells_above_temperature(material_reference_temps[1],
+                                                    temperature);
     }
 
     // Time can be different than time + time_step if an embedded scheme is
@@ -1109,17 +1111,20 @@ run(MPI_Comm const &communicator, boost::property_tree::ptree const &database,
       // mechanics when outputting
       if (n_time_step % time_steps_output == 0)
       {
+        // For now assume that only the bottom of the domain is fixed in place
+        std::vector<unsigned int> fixed_faces = {4};
+
         if (use_thermal_physics)
         {
           dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host>
               temperature_host(temperature.get_partitioner());
           temperature_host.import(temperature, dealii::VectorOperation::insert);
           mechanical_physics->setup_dofs(thermal_physics->get_dof_handler(),
-                                         temperature_host);
+                                         temperature_host, fixed_faces);
         }
         else
         {
-          mechanical_physics->setup_dofs();
+          mechanical_physics->setup_dofs(fixed_faces);
         }
         displacement = mechanical_physics->solve();
       }

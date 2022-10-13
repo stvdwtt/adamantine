@@ -518,15 +518,13 @@ ThermalPhysics<dim, fe_degree, MemorySpaceType, QuadratureType>::ThermalPhysics(
       _deposition_cos.push_back(1.);
       _deposition_sin.push_back(0.);
 
-      // Set user index to "0" to denote it as a substrate cell
-      cell->set_user_index(0);
+      // Set user flag to denote it as a substrate cell
+      cell->set_user_flag();
     }
     else
     {
       cell->set_active_fe_index(1);
-
-      // Set user index to "1" to denote it as a non-substrate cell
-      cell->set_user_index(1);
+      cell->clear_user_flag();
     }
   }
 
@@ -575,18 +573,10 @@ template <int dim, int fe_degree, typename MemorySpaceType,
           typename QuadratureType>
 void ThermalPhysics<dim, fe_degree, MemorySpaceType, QuadratureType>::
     mark_cells_above_temperature(
-        const unsigned int index, const double threshold_temperature,
+        const double threshold_temperature,
         dealii::LA::distributed::Vector<double, MemorySpaceType> const
             temperature)
 {
-
-  /*
-auto fe = _dof_handler.get_fe_collection();
-
-// Create fe_values
-dealii::hp::FEValues<dim> fe_values_hp(fe, _q_collection,
-                                       dealii::update_values);
-                                       */
   auto dofs_per_cell = _dof_handler.get_fe().dofs_per_cell;
   dealii::FEValues<dim> fe_values(_dof_handler.get_fe(), _q_collection,
                                   dealii::update_values |
@@ -599,7 +589,7 @@ dealii::hp::FEValues<dim> fe_values_hp(fe, _q_collection,
            dealii::IteratorFilters::LocallyOwnedCell(),
            dealii::IteratorFilters::ActiveFEIndexEqualTo(0)))
   {
-    if (cell->user_index() == 0)
+    if (cell->user_flag_set())
     {
       // auto fe_values = fe_values_hp.select_fe_values(0);
       fe_values.reinit(cell);
@@ -629,7 +619,7 @@ dealii::hp::FEValues<dim> fe_values_hp(fe, _q_collection,
       // Set the user index
       if (cell_temperature > threshold_temperature)
       {
-        cell->set_user_index(index);
+        cell->clear_user_flag();
       }
     }
   }

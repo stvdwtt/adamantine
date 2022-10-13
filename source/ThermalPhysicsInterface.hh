@@ -129,7 +129,7 @@ public:
    * Mark cells above the given temperature
    */
   virtual void mark_cells_above_temperature(
-      const unsigned int index, const double threshold_temperature,
+      const double threshold_temperature,
       dealii::LA::distributed::Vector<double, MemorySpaceType> const
           temperature) = 0;
 

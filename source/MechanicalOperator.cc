@@ -188,11 +188,22 @@ void MechanicalOperator<dim, MemorySpaceType>::assemble_system()
           // quadrature point using the temperature DoFHandler.
           auto const &cell = fe_values.get_cell();
 
-          // Get the cell user index. These correspond to which element of the
-          // _reference_temperatures list to use for the reference temperature.
-          // For now "0" means substrate cell, "1" means deposited cell.
-          const unsigned int user_index = cell->user_index();
-          double reference_temperature = _reference_temperatures.at(user_index);
+          // Get the appropriate reference temperature for the cell. The cell's
+          // user flag determines whether the cell is unmelted subtrate (set)
+          // or not (unset). If the cell is not in the unmelted substrate, the
+          // reference temperature depends on the material.
+          const bool is_unmelted_substrate = cell->user_flag_set();
+
+          double reference_temperature;
+          if (is_unmelted_substrate)
+          {
+            reference_temperature = _reference_temperatures.at(0);
+          }
+          else
+          {
+            reference_temperature =
+                _reference_temperatures.at(cell->material_id() + 1);
+          }
 
           // Since we use a Triangulation cell to reinitialize the hp::FEValues,
           // it will automatically choose the zero-th finite element.

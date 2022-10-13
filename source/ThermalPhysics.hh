@@ -97,9 +97,9 @@ public:
    * Mark cells above the given temperature
    */
   void mark_cells_above_temperature(
-      const unsigned int index, const double threshold_temperature,
+      const double threshold_temperature,
       dealii::LA::distributed::Vector<double, MemorySpaceType> const
-          temperature);
+          temperature) override;
 
   double get_deposition_cos(unsigned int const i) const override;
 
