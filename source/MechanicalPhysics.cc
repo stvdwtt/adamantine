@@ -44,8 +44,7 @@ MechanicalPhysics<dim, MemorySpaceType>::MechanicalPhysics(
 }
 
 template <int dim, typename MemorySpaceType>
-void MechanicalPhysics<dim, MemorySpaceType>::setup_dofs(
-    std::vector<unsigned int> fixed_faces)
+void MechanicalPhysics<dim, MemorySpaceType>::setup_dofs()
 {
   _dof_handler.distribute_dofs(_fe_collection);
   dealii::IndexSet locally_relevant_dofs;
@@ -73,11 +72,10 @@ template <int dim, typename MemorySpaceType>
 void MechanicalPhysics<dim, MemorySpaceType>::setup_dofs(
     dealii::DoFHandler<dim> const &thermal_dof_handler,
     dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host> const
-        &temperature,
-    std::vector<unsigned int> fixed_faces)
+        &temperature)
 {
   _mechanical_operator->update_temperature(thermal_dof_handler, temperature);
-  setup_dofs(fixed_faces);
+  setup_dofs();
 }
 
 template <int dim, typename MemorySpaceType>

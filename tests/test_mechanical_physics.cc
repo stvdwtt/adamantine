@@ -231,8 +231,7 @@ BOOST_AUTO_TEST_CASE(elastostatic)
   adamantine::MechanicalPhysics<3, dealii::MemorySpace::Host>
       mechanical_physics(communicator, fe_degree, geometry, material_properties,
                          empty_vector, true);
-  std::vector<unsigned int> fixed_faces = {0};
-  mechanical_physics.setup_dofs(fixed_faces);
+  mechanical_physics.setup_dofs();
   auto solution = mechanical_physics.solve();
 
   // Reference computation
@@ -399,8 +398,7 @@ run_eshelby(std::vector<dealii::Point<dim>> pts, unsigned int refinement_cycles)
       communicator, post_processor_database, thermal_physics.get_dof_handler(),
       mechanical_physics.get_dof_handler());
 
-  mechanical_physics.setup_dofs(thermal_physics.get_dof_handler(), temperature,
-                                fixed_faces);
+  mechanical_physics.setup_dofs(thermal_physics.get_dof_handler(), temperature);
 
   auto solution = mechanical_physics.solve();
 
@@ -439,6 +437,7 @@ BOOST_AUTO_TEST_CASE(thermoelastic_eshelby, *utf::tolerance(0.16))
 
   auto pt_values = run_eshelby<dim>(pts, refinement_cyles);
 
+  /*
   std::vector<dealii::Vector<double>> pt_values;
 
   for (auto pt : pts)
@@ -467,6 +466,8 @@ BOOST_AUTO_TEST_CASE(thermoelastic_eshelby, *utf::tolerance(0.12))
 
   auto pt_values = run_eshelby<dim>(pts, refinement_cyles, fixed_faces);
 
+  */
+
   std::vector<double> ref_u_pt1 = {4.8241206e-09, 0.0, 0.0};
   std::vector<double> ref_u_pt2 = {3.45348338e-10, 2.30232226e-10,
                                    -1.15116113e-10};
@@ -475,10 +476,9 @@ BOOST_AUTO_TEST_CASE(thermoelastic_eshelby, *utf::tolerance(0.12))
   {
     BOOST_TEST(pt_values[0][i] == ref_u_pt1[i]);
   }
-}
 
-for (unsigned int i = 0; i < dim; ++i)
-{
-  BOOST_TEST(pt_values[1][i] == ref_u_pt2[i]);
-}
+  for (unsigned int i = 0; i < dim; ++i)
+  {
+    BOOST_TEST(pt_values[1][i] == ref_u_pt2[i]);
+  }
 }

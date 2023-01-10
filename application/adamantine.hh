@@ -928,8 +928,6 @@ run(MPI_Comm const &communicator, boost::property_tree::ptree const &database,
 #ifdef ADAMANTINE_WITH_DEALII_WEAK_FORMS
   if (use_mechanical_physics)
   {
-    // For now assume that only the bottom of the domain is fixed in place
-    std::vector<unsigned int> fixed_faces = {4};
 
     if (use_thermal_physics)
     {
@@ -938,12 +936,12 @@ run(MPI_Comm const &communicator, boost::property_tree::ptree const &database,
           temperature_host(temperature.get_partitioner());
       temperature_host.import(temperature, dealii::VectorOperation::insert);
       mechanical_physics->setup_dofs(thermal_physics->get_dof_handler(),
-                                     temperature_host, fixed_faces);
+                                     temperature_host);
     }
     else
     {
       // Mechanical only simulation
-      mechanical_physics->setup_dofs(fixed_faces);
+      mechanical_physics->setup_dofs();
     }
     displacement = mechanical_physics->solve();
   }
@@ -1111,8 +1109,6 @@ run(MPI_Comm const &communicator, boost::property_tree::ptree const &database,
       // mechanics when outputting
       if (n_time_step % time_steps_output == 0)
       {
-        // For now assume that only the bottom of the domain is fixed in place
-        std::vector<unsigned int> fixed_faces = {4};
 
         if (use_thermal_physics)
         {
@@ -1120,11 +1116,11 @@ run(MPI_Comm const &communicator, boost::property_tree::ptree const &database,
               temperature_host(temperature.get_partitioner());
           temperature_host.import(temperature, dealii::VectorOperation::insert);
           mechanical_physics->setup_dofs(thermal_physics->get_dof_handler(),
-                                         temperature_host, fixed_faces);
+                                         temperature_host);
         }
         else
         {
-          mechanical_physics->setup_dofs(fixed_faces);
+          mechanical_physics->setup_dofs();
         }
         displacement = mechanical_physics->solve();
       }
