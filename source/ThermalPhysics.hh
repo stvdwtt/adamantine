@@ -16,6 +16,7 @@
 
 #include <deal.II/base/time_stepping.h>
 #include <deal.II/base/time_stepping.templates.h>
+#include <deal.II/distributed/cell_weights.h>
 #include <deal.II/hp/fe_collection.h>
 
 #include <boost/property_tree/ptree.hpp>
@@ -192,6 +193,11 @@ private:
    * Associated quadature, either Gauss or Gauss-Lobatto.
    */
   dealii::hp::QCollection<1> _q_collection;
+  /**
+   * Object used to attach to each cell, a weight (used for load balancing)
+   * equal to the number of degrees of freedom associated with the cell.
+   */
+  dealii::parallel::CellWeights<dim> _cell_weights;
   /**
    * Cosine of the material deposition angles.
    */

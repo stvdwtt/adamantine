@@ -216,6 +216,20 @@ void MaterialProperty<dim, MemorySpaceType>::reinit_dofs()
   }
 
   _state.reinit(_n_material_states, _dofs_map.size());
+#ifdef ADAMANTINE_DEBUG
+  if constexpr (std::is_same_v<MemorySpaceType, dealii::MemorySpace::Host>)
+  {
+    MemoryBlockView<double, MemorySpaceType> state_view(_state);
+    for_each(MemorySpaceType{}, _n_material_states,
+             [=](int i) mutable
+             {
+               for (unsigned int j = 0; j < _dofs_map.size(); ++j)
+                 state_view(i, j) =
+                     std::numeric_limits<double>::signaling_NaN();
+               ;
+             });
+  }
+#endif
 }
 
 template <int dim, typename MemorySpaceType>
@@ -264,7 +278,9 @@ void MaterialProperty<dim, MemorySpaceType>::update(
   bool use_table = _use_table;
   unsigned int polynomial_order = _polynomial_order;
   for_each(
-      MemorySpaceType{}, material_ids_size, [=] ADAMANTINE_HOST_DEV(int i) {
+      MemorySpaceType{}, material_ids_size,
+      [=] ADAMANTINE_HOST_DEV(int i)
+      {
         unsigned int constexpr liquid =
             static_cast<unsigned int>(MaterialState::liquid);
         unsigned int constexpr powder =
@@ -380,6 +396,8 @@ void MaterialProperty<dim, MemorySpaceType>::update(
       });
 }
 
+// TODO When we can get rid of this function, we can remove
+// StateProperty::radiation_heat_transfer_coef
 template <int dim, typename MemorySpaceType>
 void MaterialProperty<dim, MemorySpaceType>::
     update_boundary_material_properties(
@@ -664,7 +682,8 @@ void MaterialProperty<dim, MemorySpaceType>::set_state_device(
   auto const liquid_state = static_cast<unsigned int>(MaterialState::liquid);
   auto const solid_state = static_cast<unsigned int>(MaterialState::solid);
   for_each(MemorySpaceType{}, mapping_host_view.extent(0),
-           [=] ADAMANTINE_HOST_DEV(int i) mutable {
+           [=] ADAMANTINE_HOST_DEV(int i) mutable
+           {
              double liquid_ratio_sum = 0.;
              double powder_ratio_sum = 0.;
              for (unsigned int q = 0; q < n_q_points; ++q)
@@ -711,9 +730,8 @@ void MaterialProperty<dim, MemorySpaceType>::set_initial_state()
   _state.set_zero();
   MemoryBlockView<double, MemorySpaceType> state_view(_state);
   for_each(MemorySpaceType{}, user_indices.size(),
-           [=] ADAMANTINE_HOST_DEV(int i) mutable {
-             state_view(user_indices_view(i), mp_dofs_view(i)) = 1.;
-           });
+           [=] ADAMANTINE_HOST_DEV(int i) mutable
+           { state_view(user_indices_view(i), mp_dofs_view(i)) = 1.; });
 }
 
 template <int dim, typename MemorySpaceType>
