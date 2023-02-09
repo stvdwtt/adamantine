@@ -18,6 +18,8 @@
 #include <deal.II/fe/mapping_q1.h>
 #include <deal.II/grid/filtered_iterator.h>
 #include <deal.II/grid/reference_cell.h>
+#include <deal.II/hp/fe_values.h>
+#include <deal.II/hp/mapping_collection.h>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
@@ -220,8 +222,54 @@ std::pair<std::vector<int>, std::vector<int>> set_with_experimental_data(
   // First we need to get all the supports points and the associated dof
   // indices
   std::map<dealii::types::global_dof_index, dealii::Point<dim>> indices_points;
-  dealii::DoFTools::map_dofs_to_support_points(
-      dealii::StaticMappingQ1<dim>::mapping, dof_handler, indices_points);
+
+  // Manually do what dealii::DoFTools::map_dofs_to_support_points does, since
+  // that doesn't currently work with FE_Nothing
+  const dealii::hp::FECollection<dim> &fe_collection =
+      dof_handler.get_fe_collection();
+  dealii::hp::QCollection<dim> q_coll_dummy;
+  dealii::hp::MappingCollection<dim, dim> mapping_collection;
+  const dealii::StaticMappingQ1<dim> mapping;
+  mapping_collection.push_back(mapping.mapping);
+  mapping_collection.push_back(mapping.mapping);
+  // This seems to need to be here for the hp_fe_values.reinit(cell) call
+  dealii::hp::QCollection<dim> source_q_collection;
+  source_q_collection.push_back(dealii::QGauss<dim>(1));
+  source_q_collection.push_back(dealii::QGauss<dim>(1));
+
+  dealii::hp::FEValues<dim, dim> hp_fe_values(mapping_collection, fe_collection,
+                                              source_q_collection,
+                                              dealii::update_quadrature_points);
+
+  std::vector<dealii::types::global_dof_index> local_dof_indices;
+
+  for (auto const &cell : dealii::filter_iterators(
+           dof_handler.active_cell_iterators(),
+           dealii::IteratorFilters::LocallyOwnedCell(),
+           dealii::IteratorFilters::ActiveFEIndexEqualTo(0)))
+  {
+    // only work on locally relevant cells
+    if (cell->is_artificial() == false)
+    {
+      hp_fe_values.reinit(cell);
+      const dealii::FEValues<dim, dim> &fe_values =
+          hp_fe_values.get_present_fe_values();
+
+      local_dof_indices.resize(cell->get_fe().n_dofs_per_cell());
+      cell->get_dof_indices(local_dof_indices);
+
+      const std::vector<dealii::Point<dim>> &points =
+          fe_values.get_quadrature_points();
+      for (unsigned int i = 0; i < cell->get_fe().n_dofs_per_cell(); ++i)
+      {
+        const unsigned int dof_comp =
+            cell->get_fe().system_to_component_index(i).first;
+
+        indices_points[local_dof_indices[i]] = points[i];
+      }
+    }
+  }
+
   // Change the format to something that can be used by ArborX
   std::vector<dealii::types::global_dof_index> dof_indices(
       indices_points.size());
@@ -501,8 +549,9 @@ RayTracing::get_intersection(dealii::DoFHandler<3> const &dof_handler,
         {
           // First we check if the ray is parallel to the face. If this is the
           // case, either the ray misses the face or the ray hits the edge of
-          // the face. In that last case, the ray is also orthogonal to another
-          // face and it is safe to discard all rays parallel to a face.
+          // the face. In that last case, the ray is also orthogonal to
+          // another face and it is safe to discard all rays parallel to a
+          // face.
           auto const point_0 = cell->face(f)->vertex(0);
           auto const point_1 = cell->face(f)->vertex(1);
           auto const point_2 = cell->face(f)->vertex(2);
@@ -522,24 +571,24 @@ RayTracing::get_intersection(dealii::DoFHandler<3> const &dof_handler,
           // and we go to the next face.
           if (std::abs(det) < tolerance)
             continue;
-          // Compute the distance along the ray direction between the origin of
-          // the ray and the intersection point.
+          // Compute the distance along the ray direction between the origin
+          // of the ray and the intersection point.
           auto const cross_product = dealii::cross_product_3d(edge_01, edge_02);
           auto const &ray_origin = _rays_all_frames[frame][i].origin;
           dealii::Tensor<1, dim> p0_ray({ray_origin[0] - point_0[0],
                                          ray_origin[1] - point_0[1],
                                          ray_origin[2] - point_0[2]});
           double d = cross_product * p0_ray / det;
-          // We can finally compute the intersection point. It is possible that
-          // a ray intersects multiple faces. For instance if the mesh is a cube
-          // the ray will get into the cube from one face and it will get out of
-          // the cube by the opposite face. The correct intersection point is
-          // the one with the smallest distance.
+          // We can finally compute the intersection point. It is possible
+          // that a ray intersects multiple faces. For instance if the mesh is
+          // a cube the ray will get into the cube from one face and it will
+          // get out of the cube by the opposite face. The correct
+          // intersection point is the one with the smallest distance.
           if (d < distances[ii])
           {
-            // The point intersects the plane of the face but maybe not the face
-            // itself. Check that the point is on the face.
-            // NOTE: We assume that the face is an axis-aligned rectangle.
+            // The point intersects the plane of the face but maybe not the
+            // face itself. Check that the point is on the face. NOTE: We
+            // assume that the face is an axis-aligned rectangle.
             dealii::Point<dim> intersection = ray_origin + d * ray_direction;
             std::vector<double> min(dim, std::numeric_limits<double>::max());
             std::vector<double> max(dim, std::numeric_limits<double>::lowest());
@@ -564,10 +613,10 @@ RayTracing::get_intersection(dealii::DoFHandler<3> const &dof_handler,
             bool on_the_face = true;
             for (unsigned int coord = 0; coord < 3; ++coord)
             {
-              // NOTE: We could add a tolerance if the intersection point is on
-              // the edge. Currently, we may lose some rays but I don't think it
-              // matters. The mesh does not match exactly the real object
-              // anyway.
+              // NOTE: We could add a tolerance if the intersection point is
+              // on the edge. Currently, we may lose some rays but I don't
+              // think it matters. The mesh does not match exactly the real
+              // object anyway.
               if ((intersection[coord] < min[coord]) ||
                   (intersection[coord] > max[coord]))
               {
