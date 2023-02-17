@@ -1481,6 +1481,16 @@ run_ensemble(MPI_Comm const &communicator,
 
     solution_augmented_ensemble[member].collect_sizes();
 
+    // TESTING
+    std::cout << "Solution vector size (initialization): "
+              << solution_augmented_ensemble[member].block(0).size() << " "
+              << solution_augmented_ensemble[member].size() << std::endl;
+
+    std::cout << "n_dofs (initialization): "
+              << thermal_physics_ensemble[member]->get_dof_handler().n_dofs()
+              << std::endl;
+    // END TESTING
+
     thermal_physics_ensemble[member]->get_state_from_material_properties();
 
     // For now we only output temperature
@@ -1622,6 +1632,16 @@ run_ensemble(MPI_Comm const &communicator,
     if ((time + time_step) > duration)
       time_step = duration - time;
 
+    // TESTING
+    std::cout << "Solution vector size (before refinement): "
+              << solution_augmented_ensemble[0].block(0).size() << " "
+              << solution_augmented_ensemble[0].size() << std::endl;
+
+    std::cout << "n_dofs (before refinement): "
+              << thermal_physics_ensemble[0]->get_dof_handler().n_dofs()
+              << std::endl;
+    // END TESTING
+
     // ----- Refine the mesh if necessary -----
     // Refine the mesh after time_steps_refinement time steps or when time
     // is greater or equal than the next predicted time for refinement. This
@@ -1647,6 +1667,16 @@ run_ensemble(MPI_Comm const &communicator,
                   << thermal_physics_ensemble[0]->get_dof_handler().n_dofs()
                   << std::endl;
 
+      // TESTING
+      std::cout << "Solution vector size (before add material): "
+                << solution_augmented_ensemble[0].block(0).size() << " "
+                << solution_augmented_ensemble[0].size() << std::endl;
+
+      std::cout << "n_dofs (before add material): "
+                << thermal_physics_ensemble[0]->get_dof_handler().n_dofs()
+                << std::endl;
+      // END TESTING
+
       // ----- Add material if necessary -----
       timers[adamantine::add_material_search].start();
       elements_to_activate = adamantine::get_elements_to_activate(
@@ -1657,6 +1687,17 @@ run_ensemble(MPI_Comm const &communicator,
       for (unsigned int member = 0; member < ensemble_size; ++member)
       {
         solution_augmented_ensemble[member].collect_sizes();
+
+        // TESTING
+        std::cout << "Solution vector size (after add material): "
+                  << solution_augmented_ensemble[member].block(0).size() << " "
+                  << solution_augmented_ensemble[member].size() << std::endl;
+
+        std::cout
+            << "n_dofs (after add material): "
+            << thermal_physics_ensemble[member]->get_dof_handler().n_dofs()
+            << std::endl;
+        // END TESTING
       }
     }
 
@@ -1677,6 +1718,17 @@ run_ensemble(MPI_Comm const &communicator,
     if (activation_start < activation_end)
       for (unsigned int member = 0; member < ensemble_size; ++member)
       {
+
+        // TESTING
+        std::cout << "Solution vector size (before add material): "
+                  << solution_augmented_ensemble[0].block(0).size() << " "
+                  << solution_augmented_ensemble[0].size() << std::endl;
+
+        std::cout << "n_dofs (before add material): "
+                  << thermal_physics_ensemble[0]->get_dof_handler().n_dofs()
+                  << std::endl;
+        // END TESTING
+
         // For now assume that all deposited material has never been melted
         // (may or may not be reasonable)
         std::vector<bool> has_melted(deposition_cos.size(), false);
@@ -1687,6 +1739,16 @@ run_ensemble(MPI_Comm const &communicator,
             solution_augmented_ensemble[member].block(base_state));
 
         solution_augmented_ensemble[member].collect_sizes();
+
+        // TESTING
+        std::cout << "Solution vector size (after add material): "
+                  << solution_augmented_ensemble[0].block(0).size() << " "
+                  << solution_augmented_ensemble[0].size() << std::endl;
+
+        std::cout << "n_dofs (after add material): "
+                  << thermal_physics_ensemble[0]->get_dof_handler().n_dofs()
+                  << std::endl;
+        // END TESTING
       }
 
     if ((rank == 0) && (verbose_refinement == true) &&
@@ -1728,6 +1790,17 @@ run_ensemble(MPI_Comm const &communicator,
     time_step = thermal_physics_ensemble[0]->get_delta_t_guess();
 
     // ----- Perform data assimilation -----
+
+    // TESTING
+    std::cout << "Solution vector size (before da): "
+              << solution_augmented_ensemble[0].block(0).size() << " "
+              << solution_augmented_ensemble[0].size() << std::endl;
+
+    std::cout << "n_dofs (before da): "
+              << thermal_physics_ensemble[0]->get_dof_handler().n_dofs()
+              << std::endl;
+    // END TESTING
+
     if (assimilate_data)
     {
       for (unsigned int member = 0; member < ensemble_size; ++member)

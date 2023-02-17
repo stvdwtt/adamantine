@@ -79,6 +79,12 @@ void DataAssimilator::update_ensemble(
         &augmented_state_ensemble,
     std::vector<double> const &expt_data, dealii::SparseMatrix<double> const &R)
 {
+  // TESTING
+  std::cout << "Solution vector size (start of update_ensemble): "
+            << augmented_state_ensemble[0].block(0).size() << " "
+            << augmented_state_ensemble[0].size() << std::endl;
+  // END TESTING
+
   unsigned int rank = dealii::Utilities::MPI::this_mpi_process(communicator);
 
   // Give names to the blocks in the augmented state vector
