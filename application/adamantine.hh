@@ -1813,6 +1813,29 @@ run_ensemble(MPI_Comm const &communicator,
 #ifdef ADAMANTINE_WITH_CALIPER
         CALI_MARK_BEGIN("da_experimental_data");
 #endif
+        // FIXME: This shouldn't be doing all of the frames
+
+        auto experiment_database = experiment_optional_database.get();
+
+        // PropertyTreeInput experiment.first_frame
+        unsigned int first_frame = experiment_database.get("first_frame", 0);
+        // PropertyTreeInput experiment.last_frame
+        unsigned int last_frame =
+            experiment_database.get<unsigned int>("last_frame");
+
+        adamantine::RayTracing ray_tracing(experiment_database);
+        points_values.resize(last_frame + 1 - first_frame);
+        for (auto frame = first_frame; frame < last_frame + 1; ++frame)
+        {
+          // We can get away with doing this once with the zeroth member's
+          // dof_handler because we are calculating a geometric point
+          if constexpr (dim == 3)
+          {
+            points_values[frame] = ray_tracing.get_intersection(
+                thermal_physics_ensemble[0]->get_dof_handler(), frame);
+          }
+        }
+
         auto expt_to_dof_mapping = adamantine::get_expt_to_dof_mapping(
             points_values[experimental_frame_index],
             thermal_physics_ensemble[0]->get_dof_handler());

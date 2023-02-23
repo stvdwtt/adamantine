@@ -506,6 +506,7 @@ RayTracing::get_intersection(dealii::DoFHandler<3> const &dof_handler,
   // this is wrong.
   int const my_rank = dealii::Utilities::MPI::this_mpi_process(communicator);
   unsigned int const n_rays = _rays_all_frames[frame].size();
+
   unsigned int n_intersections = 0;
   for (unsigned int i = 0; i < n_rays; ++i)
   {
@@ -525,16 +526,17 @@ RayTracing::get_intersection(dealii::DoFHandler<3> const &dof_handler,
   if (n_intersections == 0)
     return points_values;
 
-  std::vector<double> distances(n_intersections,
-                                std::numeric_limits<double>::max());
-  points_values.points.resize(n_intersections);
-  points_values.values.resize(n_intersections);
+  std::vector<double> distances;
+  distances.reserve(n_intersections);
+  points_values.points.reserve(n_intersections);
+  points_values.values.reserve(n_intersections);
+
+  int lostray = 0;
+
   auto constexpr reference_cell = dealii::ReferenceCells::get_hypercube<dim>();
   double constexpr tolerance = 1e-12;
-  unsigned int ii = 0;
   for (unsigned int i = 0; i < n_rays; ++i)
   {
-    points_values.values[ii] = _values_all_frames[frame][i];
     for (int j = offset[i]; j < offset[i + 1]; ++j)
     {
       if (indices_ranks[j].second == my_rank)
@@ -543,6 +545,10 @@ RayTracing::get_intersection(dealii::DoFHandler<3> const &dof_handler,
         // We know that the ray intersects the bounding box but we don't know
         // where it intersects the cells. We need to check the intersection of
         // the ray with each face of the cell.
+        double distance = std::numeric_limits<double>::max();
+
+        bool face_found = false;
+
         for (unsigned int f = 0; f < reference_cell.n_faces(); ++f)
         {
           // First we check if the ray is parallel to the face. If this is the
@@ -581,7 +587,7 @@ RayTracing::get_intersection(dealii::DoFHandler<3> const &dof_handler,
           // the ray will get into the cube from one face and it will get out of
           // the cube by the opposite face. The correct intersection point is
           // the one with the smallest distance.
-          if (d < distances[ii])
+          if (d < distance)
           {
             // The point intersects the plane of the face but maybe not the face
             // itself. Check that the point is on the face.
@@ -614,8 +620,9 @@ RayTracing::get_intersection(dealii::DoFHandler<3> const &dof_handler,
               // the edge. Currently, we may lose some rays but I don't think it
               // matters. The mesh does not match exactly the real object
               // anyway.
-              if ((intersection[coord] < min[coord]) ||
-                  (intersection[coord] > max[coord]))
+              double epsilon = 1.0e-10;
+              if ((intersection[coord] < min[coord] - epsilon) ||
+                  (intersection[coord] > max[coord] + epsilon))
               {
                 on_the_face = false;
                 break;
@@ -624,16 +631,22 @@ RayTracing::get_intersection(dealii::DoFHandler<3> const &dof_handler,
 
             if (on_the_face)
             {
-              points_values.points[ii] = intersection;
-              distances[ii] = d;
+              points_values.values.push_back(
+                  _values_all_frames[frame][i]); // THE PROBLEM
+              points_values.points.push_back(intersection);
+              distance = d;
+              distances.push_back(d);
+              face_found = true;
             }
           }
         }
+        if (!face_found)
+          lostray++;
       }
-      if (offset[i] != offset[i + 1])
-        ++ii;
     }
   }
+
+  std::cout << "Number of rays lost: " << lostray << std::endl;
 
   return points_values;
 }
