@@ -42,8 +42,7 @@ void validate_input_database(boost::property_tree::ptree &database)
   size_t pos_str = 0;
   std::string boundary;
   std::string delimiter = ",";
-  auto parse_boundary_type = [&](std::string const &boundary)
-  {
+  auto parse_boundary_type = [&](std::string const &boundary) {
     if (boundary == "adiabatic")
     {
       ASSERT_THROW(
@@ -345,11 +344,12 @@ void validate_input_database(boost::property_tree::ptree &database)
     std::string beam_type = database.get<std::string>(
         "sources.beam_" + std::to_string(beam_index) + ".type");
     ASSERT_THROW(boost::iequals(beam_type, "goldak") ||
+                     boost::iequals(beam_type, "mg2") ||
                      boost::iequals(beam_type, "electron_beam") ||
                      boost::iequals(beam_type, "cube"),
                  "Error: Beam type, '" + beam_type +
                      "', is not recognized. Valid options are: 'goldak', "
-                     "'electron_beam', and 'cube'.");
+                     "'mg2', 'electron_beam', and 'cube'.");
     ASSERT_THROW(database.get_child("sources")
                          .get_child("beam_" + std::to_string(beam_index))
                          .count("scan_path_file") != 0,

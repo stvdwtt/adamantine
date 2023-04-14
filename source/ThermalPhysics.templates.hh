@@ -18,6 +18,7 @@
 #include <CubeHeatSource.hh>
 #include <ElectronBeamHeatSource.hh>
 #include <GoldakHeatSource.hh>
+#include <MG2HeatSource.hh>
 #include <ThermalPhysics.hh>
 #include <Timer.hh>
 
@@ -300,6 +301,10 @@ ThermalPhysics<dim, fe_degree, MemorySpaceType, QuadratureType>::ThermalPhysics(
     {
       _heat_sources[i] = std::make_shared<GoldakHeatSource<dim>>(beam_database);
     }
+    else if (type == "mg2")
+    {
+      _heat_sources[i] = std::make_shared<MG2HeatSource<dim>>(beam_database);
+    }
     else if (type == "electron_beam")
     {
       _heat_sources[i] =
@@ -324,8 +329,7 @@ ThermalPhysics<dim, fe_degree, MemorySpaceType, QuadratureType>::ThermalPhysics(
   size_t pos_str = 0;
   std::string boundary;
   std::string delimiter = ",";
-  auto parse_boundary_type = [&](std::string const &boundary)
-  {
+  auto parse_boundary_type = [&](std::string const &boundary) {
     if (boundary == "adiabatic")
     {
       _boundary_type = BoundaryType::adiabatic;
@@ -852,14 +856,12 @@ void ThermalPhysics<dim, fe_degree, MemorySpaceType, QuadratureType>::
   // cells are at the same level than their neighbors.
   rw_solution.reinit(solution.locally_owned_elements());
   rw_solution.import(solution, dealii::VectorOperation::insert);
-  std::for_each(rw_solution.begin(), rw_solution.end(),
-                [&](double &val)
-                {
-                  if (val == std::numeric_limits<double>::infinity())
-                  {
-                    val = new_material_temperature;
-                  }
-                });
+  std::for_each(rw_solution.begin(), rw_solution.end(), [&](double &val) {
+    if (val == std::numeric_limits<double>::infinity())
+    {
+      val = new_material_temperature;
+    }
+  });
   solution.import(rw_solution, dealii::VectorOperation::insert);
 }
 
@@ -906,10 +908,12 @@ double ThermalPhysics<dim, fe_degree, MemorySpaceType, QuadratureType>::
   }
   _current_source_height = temp_height;
 
-  auto eval = [&](double const t, LA_Vector const &y)
-  { return evaluate_thermal_physics(t, y, timers); };
-  auto id_m_Jinv = [&](double const t, double const tau, LA_Vector const &y)
-  { return id_minus_tau_J_inverse(t, tau, y, timers); };
+  auto eval = [&](double const t, LA_Vector const &y) {
+    return evaluate_thermal_physics(t, y, timers);
+  };
+  auto id_m_Jinv = [&](double const t, double const tau, LA_Vector const &y) {
+    return id_minus_tau_J_inverse(t, tau, y, timers);
+  };
 
   double time = _time_stepping->evolve_one_time_step(eval, id_m_Jinv, t,
                                                      delta_t, solution);

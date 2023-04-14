@@ -12,6 +12,7 @@ set(Adamantine_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/MaterialProperty.templates.hh
     ${CMAKE_CURRENT_SOURCE_DIR}/MemoryBlock.hh
     ${CMAKE_CURRENT_SOURCE_DIR}/MemoryBlockView.hh
+    ${CMAKE_CURRENT_SOURCE_DIR}/MG2HeatSource.hh
     ${CMAKE_CURRENT_SOURCE_DIR}/NewtonSolver.hh
     ${CMAKE_CURRENT_SOURCE_DIR}/Operator.hh
     ${CMAKE_CURRENT_SOURCE_DIR}/PointCloud.hh
@@ -39,6 +40,7 @@ set(Adamantine_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/GoldakHeatSource.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/ImplicitOperator.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/MaterialProperty.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/MG2HeatSource.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/NewtonSolver.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/PointCloud.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/PostProcessor.cc

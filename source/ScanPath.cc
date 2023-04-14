@@ -52,14 +52,21 @@ void ScanPath::load_segment_scan_path(std::string scan_path_file)
   // segments to read, whichever comes first
   while ((getline(file, line)) || (line_index - 2 < n_segments))
   {
+    std::cout << line << std::endl;
     std::vector<std::string> split_line;
-    boost::split(split_line, line, boost::is_any_of(" "),
+    boost::split(split_line, line, boost::is_any_of(" \t"),
                  boost::token_compress_on);
     ScanPathSegment segment;
 
     // Set the segment type
     ScanPathSegmentType segment_type = ScanPathSegmentType::line;
-    if (split_line[0] == "0")
+    if (split_line[0].size() == 0)
+    {
+      // Blank line
+      std::cout << "Blank line in scan path." << std::endl;
+      continue;
+    }
+    else if (split_line[0] == "0")
     {
       // Check to make sure the segment isn't the first, if it is, throw an
       // exception (the first segment must be a point in the spec).
@@ -73,7 +80,17 @@ void ScanPath::load_segment_scan_path(std::string scan_path_file)
     else
     {
       ASSERT_THROW(false, "Error: Mode type in scan path file line " +
-                              std::to_string(line_index) + " not recognized.");
+                              std::to_string(line_index) + " (" +
+                              split_line[0] + ") not recognized.");
+    }
+
+    if (split_line.size() != 6)
+    {
+      std::cout << "Scan path length for segment " +
+                       std::to_string(line_index) +
+                       " does not have the correct number of entries."
+                << std::endl;
+      std::cout << line << std::endl;
     }
 
     // Set the segment end position
