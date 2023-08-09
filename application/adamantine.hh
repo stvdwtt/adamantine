@@ -740,6 +740,28 @@ void refine_mesh(
                         solution);
   }
 
+  // TESTING
+  // Ensure that the mesh is at least a certain amount refined in a height
+  // window. This is primarily to not overly refine the substrate.
+  bool force_z_refinement = true;
+  double min_z_refinement = 70.0e-3;
+  double max_z_refinement = 700.0e-3;
+  unsigned int min_refinement = 1;
+
+  for (auto cell :
+       dealii::filter_iterators(triangulation.active_cell_iterators(),
+                                dealii::IteratorFilters::LocallyOwnedCell()))
+  {
+    if (cell->center()[2] > min_z_refinement &&
+        cell->center()[2] < max_z_refinement && cell->level() < min_refinement)
+      cell->set_refine_flag();
+  }
+
+  // Execute the refinement and transfer the solution onto the new mesh.
+  refine_and_transfer(thermal_physics, material_properties, dof_handler,
+                      solution);
+  // END TESTING
+
   // Recompute the inverse of the mass matrix
   thermal_physics->compute_inverse_mass_matrix();
 }
@@ -1826,9 +1848,9 @@ run_ensemble(MPI_Comm const &communicator,
           temperature_expt.reinit(
               solution_augmented_ensemble[0].block(base_state));
           temperature_expt.add(1.0e10);
-          adamantine::set_with_experimental_data(communicator,
-              points_values, expt_to_dof_mapping, temperature_expt,
-              verbose_output);
+          adamantine::set_with_experimental_data(
+              communicator, points_values, expt_to_dof_mapping,
+              temperature_expt, verbose_output);
 
           thermal_physics_ensemble[0]->get_affine_constraints().distribute(
               temperature_expt);
