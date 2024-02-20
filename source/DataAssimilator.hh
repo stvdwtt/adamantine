@@ -42,7 +42,8 @@ enum class LocalizationCutoff
 enum class AugmentedStateParameters
 {
   beam_0_absorption,
-  beam_0_max_power
+  beam_0_max_power,
+  material_0_solid_conv_coeff
 };
 
 /**

@@ -1311,6 +1311,9 @@ run_ensemble(MPI_Comm const &communicator,
     beam_0_absorption_mean =
         database.get<double>("sources.beam_0.absorption_efficiency");
   }
+    
+  // PropertyTreeInput materials.material_0.solid.convection_heat_transfer_coef
+  double const material_0_solid_conv_coeff_mean = database.get<double>("materials.material_0.solid.convection_heat_transfer_coef");
 
   // ------ Set up the ensemble members -----
   // There might be a more efficient way to share some of these objects
@@ -1350,6 +1353,14 @@ run_ensemble(MPI_Comm const &communicator,
   std::vector<double> beam_0_absorption =
       adamantine::fill_and_sync_random_vector(
           ensemble_size, beam_0_absorption_mean, beam_0_absorption_stddev);
+
+  // PropertyTreeInput ensemble.material_0_solid_conv_coeff_stddev
+  const double material_0_solid_conv_coeff_stddev =
+      ensemble_database.get("material_0_solid_conv_coeff_stddev", 0.0);
+
+  std::vector<double> material_0_solid_conv_coeff =
+      adamantine::fill_and_sync_random_vector(
+          ensemble_size, material_0_solid_conv_coeff_mean, material_0_solid_conv_coeff_stddev);
 
   // Create a new property tree database for each ensemble member
   std::vector<boost::property_tree::ptree> database_ensemble(ensemble_size,
@@ -1408,6 +1419,13 @@ run_ensemble(MPI_Comm const &communicator,
         augmented_state_parameters.push_back(
             adamantine::AugmentedStateParameters::beam_0_max_power);
       }
+      // PropertyTreeInput data_assimilation.augment_with_material_0_solid_conv_coeff
+      if (data_assimilation_database.get("augment_with_material_0_solid_conv_coeff",
+                                         false))
+      {
+        augmented_state_parameters.push_back(
+            adamantine::AugmentedStateParameters::material_0_solid_conv_coeff);
+      }
     }
   }
   adamantine::DataAssimilator data_assimilator(data_assimilation_database);
@@ -1427,6 +1445,10 @@ run_ensemble(MPI_Comm const &communicator,
       // PropertyTreeInput sources.beam_0.absorption_efficiency
       database_ensemble[member].put("sources.beam_0.absorption_efficiency",
                                     beam_0_absorption[member]);
+
+      // PropertyTreeInput materials.material_0.solid.convection_heat_transfer_coef
+      database_ensemble[member].put("materials.material_0.solid.convection_heat_transfer_coef",
+                                    material_0_solid_conv_coeff[member]);
 
       // Populate the parameter augmentation block of the augmented state
       // ensemble
@@ -1453,6 +1475,12 @@ run_ensemble(MPI_Comm const &communicator,
           {
             solution_augmented_ensemble[member].block(augmented_state)[index] =
                 beam_0_max_power[member];
+          }
+          else if (augmented_state_parameters.at(index) ==
+                   adamantine::AugmentedStateParameters::material_0_solid_conv_coeff)
+          {
+            solution_augmented_ensemble[member].block(augmented_state)[index] =
+                material_0_solid_conv_coeff[member];
           }
         }
       }
