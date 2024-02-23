@@ -16,6 +16,7 @@
 #include <deal.II/grid/filtered_iterator.h>
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_in.h>
+#include <deal.II/grid/grid_tools.h>
 
 namespace adamantine
 {
@@ -88,6 +89,9 @@ Geometry<dim>::Geometry(MPI_Comm const &communicator,
 
     grid_in.read(mesh_file, grid_in_format);
     _triangulation.copy_triangulation(serial_triangulation);
+    // PropertyTreeInput geometry.mesh_scale_factor
+    auto mesh_scaling = database.get("mesh_scale_factor", 1.0);
+    dealii::GridTools::scale(mesh_scaling, _triangulation);
   }
   else
   {
@@ -113,14 +117,14 @@ Geometry<dim>::Geometry(MPI_Comm const &communicator,
     // For now we assume that the geometry is very simple.
     dealii::GridGenerator::subdivided_hyper_rectangle(
         _triangulation, repetitions, p1, p2, true);
-
-    // Assign the MaterialID.
-    for (auto cell : _triangulation.active_cell_iterators())
-    {
-      cell->set_material_id(0);
-    }
   }
-
+  
+  // Assign the MaterialID. Do we need an input option to guard this if an imported
+  // defines material ids?
+  for (auto cell : _triangulation.active_cell_iterators())
+  {
+      cell->set_material_id(0);
+  }
   assign_material_state(database);
 }
 

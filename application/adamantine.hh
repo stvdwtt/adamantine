@@ -838,17 +838,30 @@ run(MPI_Comm const &communicator, boost::property_tree::ptree const &database,
 #ifdef ADAMANTINE_WITH_CALIPER
   CALI_CXX_MARK_FUNCTION;
 #endif
+  unsigned int rank = dealii::Utilities::MPI::this_mpi_process(communicator);
+
+  // Extract the verbosity
+  // PropertyTreeInput verbose_output
+  bool const verbose_output = database.get("verbose_output", false);
 
   // Create the Geometry
+  if ((rank == 0) && (verbose_output == true))
+      std::cout << "Creating geometry object...";
   boost::property_tree::ptree geometry_database =
       database.get_child("geometry");
   adamantine::Geometry<dim> geometry(communicator, geometry_database);
+  if ((rank == 0) && (verbose_output == true))
+      std::cout << "done" << std::endl;
 
   // Create the MaterialProperty
+  if ((rank == 0) && (verbose_output == true))
+      std::cout << "Creating material properties object...";
   boost::property_tree::ptree material_database =
       database.get_child("materials");
   adamantine::MaterialProperty<dim, MemorySpaceType> material_properties(
       communicator, geometry.get_triangulation(), material_database);
+  if ((rank == 0) && (verbose_output == true))
+      std::cout << "done" << std::endl;
 
   // Extract the physics property tree
   boost::property_tree::ptree physics_database = database.get_child("physics");
@@ -864,16 +877,14 @@ run(MPI_Comm const &communicator, boost::property_tree::ptree const &database,
   boost::property_tree::ptree post_processor_database =
       database.get_child("post_processor");
 
-  // Extract the verbosity
-  // PropertyTreeInput verbose_output
-  bool const verbose_output = database.get("verbose_output", false);
-
   // Create ThermalPhysics if necessary
   std::unique_ptr<adamantine::ThermalPhysicsInterface<dim, MemorySpaceType>>
       thermal_physics;
   std::vector<std::shared_ptr<adamantine::HeatSource<dim>>> heat_sources;
   if (use_thermal_physics)
   {
+    if ((rank == 0) && (verbose_output == true))
+      std::cout << "Creating thermal physics object...";
     // PropertyTreeInput discretization.thermal.fe_degree
     unsigned int const fe_degree =
         discretization_database.get<unsigned int>("thermal.fe_degree");
@@ -885,6 +896,8 @@ run(MPI_Comm const &communicator, boost::property_tree::ptree const &database,
         material_properties);
     heat_sources = thermal_physics->get_heat_sources();
     post_processor_database.put("thermal_output", true);
+    if ((rank == 0) && (verbose_output == true))
+      std::cout << "done" << std::endl;
   }
 
   // PropertyTreeInput materials.initial_temperature
@@ -1025,7 +1038,6 @@ run(MPI_Comm const &communicator, boost::property_tree::ptree const &database,
 #endif
     if ((time + time_step) > duration)
       time_step = duration - time;
-    unsigned int rank = dealii::Utilities::MPI::this_mpi_process(communicator);
 
     // Refine the mesh after time_steps_refinement time steps or when time
     // is greater or equal than the next predicted time for refinement. This
@@ -1113,7 +1125,7 @@ run(MPI_Comm const &communicator, boost::property_tree::ptree const &database,
     // Solve the thermal problem
     if (use_thermal_physics)
     {
-      time = thermal_physics->evolve_one_time_step(time, time_step, temperature,
+        time = thermal_physics->evolve_one_time_step(time, time_step, temperature,
                                                    timers);
     }
     // Solve the (thermo-)mechanical problem

@@ -116,6 +116,7 @@ void ScanPath::load_event_series_scan_path(std::string scan_path_file)
   std::string line;
 
   double last_power = 0.0;
+  bool first_point = true;
   while (getline(file, line))
   {
     // For an event series the first segment is a ScanPathSegment point, then
@@ -135,7 +136,12 @@ void ScanPath::load_event_series_scan_path(std::string scan_path_file)
     segment.end_point(2) = std::stod(split_line[3]);
 
     // Set the power modifier
-    segment.power_modifier = last_power;
+    if (first_point){
+       segment.power_modifier = std::stod(split_line[4]);
+    }
+    else{
+      segment.power_modifier = last_power;
+    }
     last_power = std::stod(split_line[4]);
 
     _segment_list.push_back(segment);
@@ -188,7 +194,7 @@ dealii::Point<3> ScanPath::value(double const &time) const
       (_segment_list[_current_segment].end_point - segment_start_point) /
           (_segment_list[_current_segment].end_time - segment_start_time) *
           (time - segment_start_time);
-
+  
   return position;
 }
 
@@ -203,7 +209,7 @@ double ScanPath::get_power_modifier(double const &time) const
   dealii::Point<3> segment_start_point;
   double segment_start_time = 0.0;
   update_current_segment_info(time, segment_start_point, segment_start_time);
-
+  
   return _segment_list[_current_segment].power_modifier;
 }
 
