@@ -106,14 +106,22 @@ Geometry<dim>::Geometry(MPI_Comm const &communicator,
 
     dealii::Point<dim> p1;
     dealii::Point<dim> p2;
+    // PropertyTreeInput geometry.length_min
+    p1[axis<dim>::x] = database.get<double>("length_min");
     // PropertyTreeInput geometry.length
     p2[axis<dim>::x] = database.get<double>("length");
+    // PropertyTreeInput geometry.height_min
+    p1[axis<dim>::z] = database.get("height_min", 0.0);
     // PropertyTreeInput geometry.height
     p2[axis<dim>::z] = database.get<double>("height");
-    // PropertyTreeInput geometry.width
-    if (dim == 3)
-      p2[axis<dim>::y] = database.get<double>("width");
-
+    if (dim == 3){
+	// PropertyTreeInput geometry.width_min
+        p1[axis<dim>::y] = database.get("width_min",0.0);
+	// PropertyTreeInput geometry.width    
+        p2[axis<dim>::y] = database.get<double>("width");
+    }
+    std::cout << p1 << std::endl;
+    std::cout << p2 << std::endl;    
     // For now we assume that the geometry is very simple.
     dealii::GridGenerator::subdivided_hyper_rectangle(
         _triangulation, repetitions, p1, p2, true);

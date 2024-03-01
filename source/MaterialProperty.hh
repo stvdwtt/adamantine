@@ -42,7 +42,7 @@ public:
   /**
    * Order of the polynomial used to describe the material properties.
    */
-  static unsigned int constexpr polynomial_order = 4;
+  static unsigned int constexpr polynomial_order = 1;
 
   /**
    * Size of the table, i.e. number of temperature/property pairs, used to
