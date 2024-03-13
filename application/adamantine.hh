@@ -783,7 +783,7 @@ run(MPI_Comm const &communicator, boost::property_tree::ptree const &database,
 #ifdef ADAMANTINE_WITH_CALIPER
   CALI_CXX_MARK_FUNCTION;
 #endif
-  unsigned int rank = dealii::Utilities::MPI::this_mpi_process(communicator);
+  unsigned int const rank = dealii::Utilities::MPI::this_mpi_process(communicator);
 
   // Extract the verbosity
   // PropertyTreeInput verbose_output
@@ -983,8 +983,6 @@ run(MPI_Comm const &communicator, boost::property_tree::ptree const &database,
   unsigned int n_time_step = 0;
   double time = 0.;
   double activation_time_end = -1.;
-  unsigned int const rank =
-      dealii::Utilities::MPI::this_mpi_process(communicator);
   if (restart == true)
   {
     if (rank == 0)

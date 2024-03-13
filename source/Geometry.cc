@@ -18,6 +18,8 @@
 #include <deal.II/grid/grid_in.h>
 #include <deal.II/grid/grid_tools.h>
 
+#include <set>
+
 namespace adamantine
 {
 template <int dim>
@@ -92,6 +94,23 @@ Geometry<dim>::Geometry(MPI_Comm const &communicator,
     // PropertyTreeInput geometry.mesh_scale_factor
     auto mesh_scaling = database.get("mesh_scale_factor", 1.0);
     dealii::GridTools::scale(mesh_scaling, _triangulation);
+
+    // Check if the mesh has materials associated with it
+    std::set<dealii::types::material_id> material_ids_in_mesh;
+    for (auto cell : _triangulation.active_cell_iterators())
+    {
+      auto mat_id = cell->material_id();
+      if (material_ids_in_mesh.find(mat_id) == material_ids_in_mesh.end())
+      {
+        material_ids_in_mesh.insert(mat_id);
+      }
+    }
+    std::cout << "Material IDs in the mesh: ";
+    for (const dealii::types::material_id &element : material_ids_in_mesh)
+    {
+      std::cout << element << " ";
+    }
+    std::cout << std::endl;
   }
   else
   {
@@ -114,25 +133,28 @@ Geometry<dim>::Geometry(MPI_Comm const &communicator,
     p1[axis<dim>::z] = database.get("height_min", 0.0);
     // PropertyTreeInput geometry.height
     p2[axis<dim>::z] = database.get<double>("height");
-    if (dim == 3){
-	// PropertyTreeInput geometry.width_min
-        p1[axis<dim>::y] = database.get("width_min",0.0);
-	// PropertyTreeInput geometry.width    
-        p2[axis<dim>::y] = database.get<double>("width");
+    if (dim == 3)
+    {
+      // PropertyTreeInput geometry.width_min
+      p1[axis<dim>::y] = database.get("width_min", 0.0);
+      // PropertyTreeInput geometry.width
+      p2[axis<dim>::y] = database.get<double>("width");
     }
     std::cout << p1 << std::endl;
-    std::cout << p2 << std::endl;    
+    std::cout << p2 << std::endl;
     // For now we assume that the geometry is very simple.
     dealii::GridGenerator::subdivided_hyper_rectangle(
         _triangulation, repetitions, p1, p2, true);
   }
-  
-  // Assign the MaterialID. Do we need an input option to guard this if an imported
-  // defines material ids?
+
+  // Assign the MaterialID. Do we need an input option to guard this if an
+  // imported defines material ids?
+  /*
   for (auto cell : _triangulation.active_cell_iterators())
   {
       cell->set_material_id(0);
   }
+  */
   assign_material_state(database);
 }
 

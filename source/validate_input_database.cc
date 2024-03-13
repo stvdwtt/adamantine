@@ -98,7 +98,7 @@ void validate_input_database(boost::property_tree::ptree &database)
   // Tree: geometry
   unsigned int dim = database.get<unsigned int>("geometry.dim");
   ASSERT_THROW((dim == 2) || (dim == 3), "Error: dim should be 2 or 3");
-  
+
   bool use_powder = database.get("geometry.use_powder", false);
 
   if (use_powder)
