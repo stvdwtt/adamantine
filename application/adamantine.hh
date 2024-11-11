@@ -1464,8 +1464,8 @@ run_ensemble(MPI_Comm const &global_communicator,
       ensemble_database.get("material_0_solid_conv_coeff_stddev", 0.0);
 
   std::vector<double> material_0_solid_conv_coeff =
-      adamantine::fill_and_sync_random_vector(
-          ensemble_size, material_0_solid_conv_coeff_mean, material_0_solid_conv_coeff_stddev);
+      adamantine::get_normal_random_vector(
+          local_ensemble_size, first_local_member, material_0_solid_conv_coeff_mean, material_0_solid_conv_coeff_stddev);
 
   // Create a new property tree database for each ensemble member
   std::vector<boost::property_tree::ptree> database_ensemble(
