@@ -1,4 +1,4 @@
-/* Copyright (c) 2016 - 2022, the adamantine authors.
+/* Copyright (c) 2016 - 2024, the adamantine authors.
  *
  * This file is subject to the Modified BSD License and may not be distributed
  * without copyright and license information. Please refer to the file LICENSE
@@ -6,24 +6,26 @@
  */
 
 #ifndef THERMAL_OPERATOR_DEVICE_HH
-#define THERMAL_OPERATOR_DEVIcE_HH
+#define THERMAL_OPERATOR_DEVICE_HH
 
 #include <MaterialProperty.hh>
 #include <ThermalOperatorBase.hh>
 
-#include <deal.II/lac/cuda_vector.h>
+#include <deal.II/base/types.h>
 #include <deal.II/matrix_free/cuda_matrix_free.h>
 
 namespace adamantine
 {
-template <int dim, int fe_degree, typename MemorySpaceType>
+template <int dim, bool use_table, int p_order, int fe_degree,
+          typename MaterialStates, typename MemorySpaceType>
 class ThermalOperatorDevice final
     : public ThermalOperatorBase<dim, MemorySpaceType>
 {
 public:
-  ThermalOperatorDevice(
-      MPI_Comm const &communicator, BoundaryType boundary_type,
-      MaterialProperty<dim, MemorySpaceType> &material_properties);
+  ThermalOperatorDevice(MPI_Comm const &communicator,
+                        BoundaryType boundary_type,
+                        MaterialProperty<dim, p_order, MaterialStates,
+                                         MemorySpaceType> &material_properties);
 
   void reinit(dealii::DoFHandler<dim> const &dof_handler,
               dealii::AffineConstraints<double> const &affine_constraints,
@@ -78,11 +80,11 @@ public:
 
   /**
    * Set the deposition cosine and sine angles and convert the data from
-   * std::vector to dealii::LinearAlgebra::CUDAWrappers::Vector<double>
+   * std::vector to Kokkos::View.
    */
   void set_material_deposition_orientation(
       std::vector<double> const &deposition_cos,
-      std::vector<double> const &deposition_sin);
+      std::vector<double> const &deposition_sin) override;
 
   void set_time_and_source_height(double, double) override
   {
@@ -104,6 +106,8 @@ public:
                  unsigned int q) const;
 
 private:
+  using kokkos_default = dealii::MemorySpace::Default::kokkos_space;
+
   /**
    * MPI communicator.
    */
@@ -119,14 +123,15 @@ private:
   /**
    * Material properties associated with the domain.
    */
-  MaterialProperty<dim, MemorySpaceType> &_material_properties;
+  MaterialProperty<dim, p_order, MaterialStates, MemorySpaceType>
+      &_material_properties;
   dealii::CUDAWrappers::MatrixFree<dim, double> _matrix_free;
-  MemoryBlock<double, dealii::MemorySpace::CUDA> _liquid_ratio;
-  MemoryBlock<double, dealii::MemorySpace::CUDA> _powder_ratio;
-  MemoryBlock<double, dealii::MemorySpace::CUDA> _material_id;
-  MemoryBlock<double, dealii::MemorySpace::CUDA> _inv_rho_cp;
-  dealii::LinearAlgebra::CUDAWrappers::Vector<double> _deposition_cos;
-  dealii::LinearAlgebra::CUDAWrappers::Vector<double> _deposition_sin;
+  Kokkos::View<double *, kokkos_default> _liquid_ratio;
+  Kokkos::View<double *, kokkos_default> _powder_ratio;
+  Kokkos::View<dealii::types::material_id *, kokkos_default> _material_id;
+  Kokkos::View<double *, kokkos_default> _inv_rho_cp;
+  Kokkos::View<double *, kokkos_default> _deposition_cos;
+  Kokkos::View<double *, kokkos_default> _deposition_sin;
   std::map<typename dealii::DoFHandler<dim>::cell_iterator,
            std::vector<unsigned int>>
       _cell_it_to_mf_pos;
@@ -136,50 +141,61 @@ private:
       _inv_rho_cp_cells;
 };
 
-template <int dim, int fe_degree, typename MemorySpaceType>
+template <int dim, bool use_table, int p_order, int fe_degree,
+          typename MaterialStates, typename MemorySpaceType>
 inline dealii::types::global_dof_index
-ThermalOperatorDevice<dim, fe_degree, MemorySpaceType>::m() const
+ThermalOperatorDevice<dim, use_table, p_order, fe_degree, MaterialStates,
+                      MemorySpaceType>::m() const
 {
   return _m;
 }
 
-template <int dim, int fe_degree, typename MemorySpaceType>
+template <int dim, bool use_table, int p_order, int fe_degree,
+          typename MaterialStates, typename MemorySpaceType>
 inline dealii::types::global_dof_index
-ThermalOperatorDevice<dim, fe_degree, MemorySpaceType>::n() const
+ThermalOperatorDevice<dim, use_table, p_order, fe_degree, MaterialStates,
+                      MemorySpaceType>::n() const
 {
   // Operator must be square
   return _m;
 }
 
-template <int dim, int fe_degree, typename MemorySpaceType>
+template <int dim, bool use_table, int p_order, int fe_degree,
+          typename MaterialStates, typename MemorySpaceType>
 inline std::shared_ptr<dealii::LA::distributed::Vector<double, MemorySpaceType>>
-ThermalOperatorDevice<dim, fe_degree,
+ThermalOperatorDevice<dim, use_table, p_order, fe_degree, MaterialStates,
                       MemorySpaceType>::get_inverse_mass_matrix() const
 {
   return _inverse_mass_matrix;
 }
 
-template <int dim, int fe_degree, typename MemorySpaceType>
+template <int dim, bool use_table, int p_order, int fe_degree,
+          typename MaterialStates, typename MemorySpaceType>
 inline dealii::CUDAWrappers::MatrixFree<dim, double> const &
-ThermalOperatorDevice<dim, fe_degree, MemorySpaceType>::get_matrix_free() const
+ThermalOperatorDevice<dim, use_table, p_order, fe_degree, MaterialStates,
+                      MemorySpaceType>::get_matrix_free() const
 {
   return _matrix_free;
 }
 
-template <int dim, int fe_degree, typename MemorySpaceType>
-inline void
-ThermalOperatorDevice<dim, fe_degree, MemorySpaceType>::jacobian_vmult(
-    dealii::LA::distributed::Vector<double, MemorySpaceType> &dst,
-    dealii::LA::distributed::Vector<double, MemorySpaceType> const &src) const
+template <int dim, bool use_table, int p_order, int fe_degree,
+          typename MaterialStates, typename MemorySpaceType>
+inline void ThermalOperatorDevice<dim, use_table, p_order, fe_degree,
+                                  MaterialStates, MemorySpaceType>::
+    jacobian_vmult(
+        dealii::LA::distributed::Vector<double, MemorySpaceType> &dst,
+        dealii::LA::distributed::Vector<double, MemorySpaceType> const &src)
+        const
 {
   vmult(dst, src);
 }
 
-template <int dim, int fe_degree, typename MemorySpaceType>
-inline double
-ThermalOperatorDevice<dim, fe_degree, MemorySpaceType>::get_inv_rho_cp(
-    typename dealii::DoFHandler<dim>::cell_iterator const &cell,
-    unsigned int) const
+template <int dim, bool use_table, int p_order, int fe_degree,
+          typename MaterialStates, typename MemorySpaceType>
+inline double ThermalOperatorDevice<dim, use_table, p_order, fe_degree,
+                                    MaterialStates, MemorySpaceType>::
+    get_inv_rho_cp(typename dealii::DoFHandler<dim>::cell_iterator const &cell,
+                   unsigned int) const
 {
   auto inv_rho_cp = _inv_rho_cp_cells.find(cell);
   ASSERT(inv_rho_cp != _inv_rho_cp_cells.end(), "Internal error");

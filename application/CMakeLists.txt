@@ -1,29 +1,22 @@
 # Create adamantine executable and link against the static library.
-if (ADAMANTINE_ENABLE_CUDA)
-  add_executable(adamantine adamantine.cu)
-  target_compile_definitions(adamantine PRIVATE ADAMANTINE_HAVE_CUDA)
-  set_target_properties(adamantine PROPERTIES
-      CXX_STANDARD 17
-      CXX_STANDARD_REQUIRED ON
-      CXX_EXTENSIONS OFF
-      CUDA_SEPARABLE_COMPILATION ON
-      CUDA_STANDARD 17
-      CUDA_STANDARD_REQUIRED ON
-  )
-else()
-  add_executable(adamantine adamantine.cc)
-  set_target_properties(adamantine PROPERTIES
-      CXX_STANDARD 17
-      CXX_STANDARD_REQUIRED ON
-      CXX_EXTENSIONS OFF
-  )
-endif()
+set(Adamantine_app_HEADERS
+    ${CMAKE_CURRENT_SOURCE_DIR}/adamantine.hh
+)
+set(Adamantine_app_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/adamantine.cc
+)
+add_executable(adamantine ${Adamantine_app_SOURCES} ${Adamantine_app_HEADERS})
+
+set_target_properties(adamantine PROPERTIES
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+)
 
 DEAL_II_SETUP_TARGET(adamantine)
 target_link_libraries(adamantine Adamantine)
 if (ADAMANTINE_ENABLE_ADIAK)
-  target_include_directories(adamantine PUBLIC ${adiak_INCLUDE_DIR})
-  target_link_libraries(adamantine adiak)
+  target_link_libraries(adamantine adiak::adiak)
 endif()
 
 file(COPY input.info DESTINATION ${CMAKE_BINARY_DIR}/bin)

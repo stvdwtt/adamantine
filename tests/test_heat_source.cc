@@ -29,8 +29,9 @@ BOOST_AUTO_TEST_CASE(heat_source_value_2d, *utf::tolerance(1e-12))
   database.put("max_power", 10.);
   database.put("scan_path_file", "scan_path.txt");
   database.put("scan_path_file_format", "segment");
-  GoldakHeatSource<2> goldak_heat_source(database);
-  ElectronBeamHeatSource<2> eb_heat_source(database);
+  boost::optional<boost::property_tree::ptree const &> units_optional_database;
+  GoldakHeatSource<2> goldak_heat_source(database, units_optional_database);
+  ElectronBeamHeatSource<2> eb_heat_source(database, units_optional_database);
 
   double g_value = 0.0;
   double eb_value = 0.0;
@@ -110,8 +111,9 @@ BOOST_AUTO_TEST_CASE(heat_source_value_3d, *utf::tolerance(1e-12))
   database.put("scan_path_file", "scan_path.txt");
   database.put("scan_path_file_format", "segment");
 
-  GoldakHeatSource<3> goldak_heat_source(database);
-  ElectronBeamHeatSource<3> eb_heat_source(database);
+  boost::optional<boost::property_tree::ptree const &> units_optional_database;
+  GoldakHeatSource<3> goldak_heat_source(database, units_optional_database);
+  ElectronBeamHeatSource<3> eb_heat_source(database, units_optional_database);
 
   double g_value = 0.0;
   double eb_value = 0.0;
@@ -138,7 +140,7 @@ BOOST_AUTO_TEST_CASE(heat_source_value_3d, *utf::tolerance(1e-12))
 
   // Check the beam center 0.001 s into the second segment
   std::cout << "Checking point 3..." << std::endl;
-  dealii::Point<3> point3(8e-4, 0.0, 0.2);
+  dealii::Point<3> point3(8e-4, 0.1, 0.2);
   goldak_heat_source.update_time(0.001001);
   g_value = goldak_heat_source.value(point3, 0.2);
   double pi_over_3_to_1p5 = std::pow(dealii::numbers::PI / 3.0, 1.5);
@@ -153,7 +155,7 @@ BOOST_AUTO_TEST_CASE(heat_source_value_3d, *utf::tolerance(1e-12))
 
   // Check slightly off beam center 0.001 s into the second segment
   std::cout << "Checking point 4..." << std::endl;
-  dealii::Point<3> point4(7.0e-4, 0.0, 0.19);
+  dealii::Point<3> point4(7.0e-4, 0.1, 0.19);
   g_value = goldak_heat_source.value(point4, 0.2);
   expected_value = 2.0 * 0.1 * 10.0 / (0.5 * 0.5 * 0.1 * pi_over_3_to_1p5);
   expected_value *=
@@ -178,8 +180,9 @@ BOOST_AUTO_TEST_CASE(heat_source_height, *utf::tolerance(1e-12))
   database.put("max_power", 10.);
   database.put("scan_path_file", "scan_path_layers.txt");
   database.put("scan_path_file_format", "segment");
-  GoldakHeatSource<2> goldak_heat_source(database);
-  ElectronBeamHeatSource<2> eb_heat_source(database);
+  boost::optional<boost::property_tree::ptree const &> units_optional_database;
+  GoldakHeatSource<2> goldak_heat_source(database, units_optional_database);
+  ElectronBeamHeatSource<2> eb_heat_source(database, units_optional_database);
 
   double g_height = 0.0;
   double eb_height = 0.0;

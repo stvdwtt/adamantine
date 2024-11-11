@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 - 2022, the adamantine authors.
+/* Copyright (c) 2020 - 2024, the adamantine authors.
  *
  * This file is subject to the Modified BSD License and may not be distributed
  * without copyright and license information. Please refer to the file LICENSE
@@ -9,6 +9,8 @@
 #define GOLDAK_HEAT_SOURCE_HH
 
 #include <HeatSource.hh>
+
+#include <limits>
 
 namespace adamantine
 {
@@ -23,15 +25,20 @@ class GoldakHeatSource final : public HeatSource<dim>
 public:
   /**
    * Constructor.
-   * \param[in] database requires the following entries:
+   * \param[in] beam_database requires the following entries:
    *   - <B>absorption_efficiency</B>: double in \f$[0,1]\f$
    *   - <B>depth</B>: double in \f$[0,\infty)\f$
    *   - <B>diameter</B>: double in \f$[0,\infty)\f$
    *   - <B>max_power</B>: double in \f$[0, \infty)\f$
    *   - <B>input_file</B>: name of the file that contains the scan path
    *     segments
+   * \param[in] units_optional_database may contain the following entries:
+   *   - <B>heat_source.dimension</B>
+   *   - <B>heat_source.power</B>
    */
-  GoldakHeatSource(boost::property_tree::ptree const &database);
+  GoldakHeatSource(boost::property_tree::ptree const &beam_database,
+                   boost::optional<boost::property_tree::ptree const &> const
+                       &units_optional_database);
 
   /**
    * Set the time variable.
@@ -47,7 +54,7 @@ public:
 
 private:
   dealii::Point<3> _beam_center;
-  double _alpha;
+  double _alpha = std::numeric_limits<double>::signaling_NaN();
   double const _pi_over_3_to_1p5 = std::pow(dealii::numbers::PI / 3.0, 1.5);
 };
 } // namespace adamantine

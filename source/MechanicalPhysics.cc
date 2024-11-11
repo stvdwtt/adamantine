@@ -1,4 +1,4 @@
-/* Copyright (c) 2022 - 2023, the adamantine authors.
+/* Copyright (c) 2022 - 2024, the adamantine authors.
  *
  * This file is subject to the Modified BSD License and may not be distributed
  * without copyright and license information. Please refer to the file LICENSE
@@ -21,14 +21,20 @@
 
 namespace adamantine
 {
-template <int dim, typename MemorySpaceType>
-MechanicalPhysics<dim, MemorySpaceType>::MechanicalPhysics(
-    MPI_Comm const &communicator, unsigned int const fe_degree,
-    Geometry<dim> &geometry,
-    MaterialProperty<dim, MemorySpaceType> &material_properties,
-    std::vector<double> const &reference_temperatures)
+template <int dim, int p_order, typename MaterialStates,
+          typename MemorySpaceType>
+MechanicalPhysics<dim, p_order, MaterialStates, MemorySpaceType>::
+    MechanicalPhysics(MPI_Comm const &communicator,
+                      unsigned int const fe_degree, Geometry<dim> &geometry,
+                      MaterialProperty<dim, p_order, MaterialStates,
+                                       MemorySpaceType> &material_properties,
+                      std::vector<double> const &reference_temperatures)
     : _geometry(geometry), _material_properties(material_properties),
-      _dof_handler(_geometry.get_triangulation())
+      _dof_handler(_geometry.get_triangulation()),
+      _solution_transfer(_dof_handler),
+      _cell_data_transfer(
+          dynamic_cast<const dealii::parallel::distributed::Triangulation<dim>
+                           &>(_dof_handler.get_triangulation()))
 {
   // Create the FECollection
   _fe_collection.push_back(
@@ -42,15 +48,16 @@ MechanicalPhysics<dim, MemorySpaceType>::MechanicalPhysics(
 
   // Solve the mechanical problem only on the part of the domain that has solid
   // material.
-  unsigned int n_local_cells = 0;
+  unsigned int n_active_cells =
+      _dof_handler.get_triangulation().n_active_cells();
   for (auto const &cell :
        dealii::filter_iterators(_dof_handler.active_cell_iterators(),
                                 dealii::IteratorFilters::LocallyOwnedCell()))
   {
-    if (_material_properties.get_state_ratio(cell, MaterialState::solid) > 0.99)
+    if (_material_properties.get_state_ratio(
+            cell, MaterialStates::State::solid) > 0.99)
     {
       cell->set_active_fe_index(0);
-      ++n_local_cells;
     }
     else
     {
@@ -59,31 +66,39 @@ MechanicalPhysics<dim, MemorySpaceType>::MechanicalPhysics(
   }
 
   // Create the mechanical operator
-  _mechanical_operator =
-      std::make_unique<MechanicalOperator<dim, MemorySpaceType>>(
-          communicator, _material_properties, reference_temperatures);
+  _mechanical_operator = std::make_unique<
+      MechanicalOperator<dim, p_order, MaterialStates, MemorySpaceType>>(
+      communicator, _material_properties, reference_temperatures);
 
   // Create the data used to compute the stress tensor
   unsigned int const n_quad_pts = _q_collection.max_n_quadrature_points();
-  _plastic_internal_variable.reserve(n_local_cells);
-  for (auto const &cell :
-       dealii::filter_iterators(_dof_handler.active_cell_iterators(),
-                                dealii::IteratorFilters::LocallyOwnedCell()))
+  _plastic_internal_variable.reserve(n_active_cells);
+
+  for (auto const &cell : _dof_handler.active_cell_iterators())
   {
-    auto elastic_limit = _material_properties.get_mechanical_property(
-        cell, StateProperty::elastic_limit);
-    _plastic_internal_variable.emplace_back(
-        std::vector<double>(n_quad_pts, elastic_limit));
+    if (cell->is_locally_owned())
+    {
+      auto elastic_limit = _material_properties.get_mechanical_property(
+          cell, StateProperty::elastic_limit);
+      _plastic_internal_variable.emplace_back(
+          std::vector<double>(n_quad_pts, elastic_limit));
+    }
+    else
+    {
+      _plastic_internal_variable.emplace_back(std::vector<double>(
+          n_quad_pts, std::numeric_limits<double>::signaling_NaN()));
+    }
   }
-  _stress.resize(n_local_cells,
+  _stress.resize(n_active_cells,
                  std::vector<dealii::SymmetricTensor<2, dim>>(n_quad_pts));
-  _back_stress.resize(n_local_cells,
+  _back_stress.resize(n_active_cells,
                       std::vector<dealii::SymmetricTensor<2, dim>>(n_quad_pts));
 }
 
-template <int dim, typename MemorySpaceType>
-void MechanicalPhysics<dim, MemorySpaceType>::setup_dofs(
-    std::vector<std::shared_ptr<BodyForce<dim>>> const &body_forces)
+template <int dim, int p_order, typename MaterialStates,
+          typename MemorySpaceType>
+void MechanicalPhysics<dim, p_order, MaterialStates, MemorySpaceType>::
+    setup_dofs(std::vector<std::shared_ptr<BodyForce<dim>>> const &body_forces)
 {
   _dof_handler.distribute_dofs(_fe_collection);
   dealii::IndexSet locally_relevant_dofs;
@@ -106,13 +121,134 @@ void MechanicalPhysics<dim, MemorySpaceType>::setup_dofs(
                                body_forces);
 }
 
-template <int dim, typename MemorySpaceType>
-void MechanicalPhysics<dim, MemorySpaceType>::setup_dofs(
-    dealii::DoFHandler<dim> const &thermal_dof_handler,
-    dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host> const
-        &temperature,
-    std::vector<bool> const &has_melted,
-    std::vector<std::shared_ptr<BodyForce<dim>>> const &body_forces)
+template <int dim, int p_order, typename MaterialStates,
+          typename MemorySpaceType>
+void MechanicalPhysics<dim, p_order, MaterialStates,
+                       MemorySpaceType>::prepare_transfer_mpi()
+{
+  _old_displacement.update_ghost_values();
+  _solution_transfer.prepare_for_coarsening_and_refinement(_old_displacement);
+
+  _data_to_transfer.clear();
+  unsigned int const n_quad_pts = _q_collection.max_n_quadrature_points();
+  unsigned int const n_doubles_per_quad_plastic = 1;
+  unsigned int const n_doubles_per_quad_stress =
+      dealii::SymmetricTensor<2, dim>::n_independent_components;
+
+  unsigned int const n_doubles_per_quad =
+      n_doubles_per_quad_plastic + n_doubles_per_quad_stress * 2;
+  std::vector<double> dummy_cell_data(n_quad_pts * n_doubles_per_quad,
+                                      std::numeric_limits<double>::infinity());
+
+  unsigned int cell_id = 0;
+  for (auto const &cell : _dof_handler.active_cell_iterators())
+  {
+    if (cell->is_locally_owned())
+    {
+      std::vector<double> cell_data(n_quad_pts * n_doubles_per_quad);
+      unsigned int const stress_offset =
+          n_quad_pts * n_doubles_per_quad_plastic;
+      unsigned int const back_stress_offset =
+          n_quad_pts * (n_doubles_per_quad_plastic + n_doubles_per_quad_stress);
+
+      std::copy(_plastic_internal_variable[cell_id].begin(),
+                _plastic_internal_variable[cell_id].end(), cell_data.begin());
+
+      for (unsigned int quad = 0; quad < n_quad_pts; ++quad)
+      {
+        for (unsigned int i = 0; i < n_doubles_per_quad_stress; ++i)
+        {
+          cell_data[stress_offset + quad * n_doubles_per_quad_stress + i] =
+              _stress[cell_id][quad].access_raw_entry(i);
+          cell_data[back_stress_offset + quad * n_doubles_per_quad_stress + i] =
+              _back_stress[cell_id][quad].access_raw_entry(i);
+        }
+      }
+      _data_to_transfer.push_back(std::move(cell_data));
+    }
+    else
+    {
+      _data_to_transfer.push_back(dummy_cell_data);
+    }
+    ++cell_id;
+  }
+  _cell_data_transfer.prepare_for_coarsening_and_refinement(_data_to_transfer);
+}
+
+template <int dim, int p_order, typename MaterialStates,
+          typename MemorySpaceType>
+void MechanicalPhysics<dim, p_order, MaterialStates,
+                       MemorySpaceType>::complete_transfer_mpi()
+{
+  _dof_handler.distribute_dofs(_fe_collection);
+
+  const dealii::IndexSet locally_relevant_dofs =
+      dealii::DoFTools::extract_locally_relevant_dofs(_dof_handler);
+  _old_displacement.reinit(_dof_handler.locally_owned_dofs(),
+                           locally_relevant_dofs,
+                           _dof_handler.get_communicator());
+  _solution_transfer.interpolate(_old_displacement);
+
+  auto n_active_cells = _dof_handler.get_triangulation().n_active_cells();
+  unsigned int const n_quad_pts = _q_collection.max_n_quadrature_points();
+
+  _plastic_internal_variable.resize(n_active_cells,
+                                    std::vector<double>(n_quad_pts));
+  _stress.resize(n_active_cells,
+                 std::vector<dealii::SymmetricTensor<2, dim>>(n_quad_pts));
+  _back_stress.resize(n_active_cells,
+                      std::vector<dealii::SymmetricTensor<2, dim>>(n_quad_pts));
+
+  unsigned int const n_doubles_per_quad_plastic = 1;
+  unsigned int const n_doubles_per_quad_stress =
+      dealii::SymmetricTensor<2, dim>::n_independent_components;
+
+  unsigned int const n_doubles_per_quad =
+      n_doubles_per_quad_plastic + n_doubles_per_quad_stress * 2;
+  std::vector<std::vector<double>> data_to_unpack(
+      n_active_cells, std::vector<double>(n_doubles_per_quad * n_quad_pts));
+  _cell_data_transfer.unpack(data_to_unpack);
+
+  unsigned int cell_id = 0;
+  for (auto const &cell : _dof_handler.active_cell_iterators())
+  {
+    if (cell->is_locally_owned())
+    {
+      unsigned int const stress_offset =
+          n_quad_pts * n_doubles_per_quad_plastic;
+      unsigned int const back_stress_offset =
+          n_quad_pts * (n_doubles_per_quad_plastic + n_doubles_per_quad_stress);
+
+      std::copy(data_to_unpack[cell_id].begin(),
+                data_to_unpack[cell_id].begin() + stress_offset,
+                _plastic_internal_variable[cell_id].begin());
+
+      for (unsigned int quad = 0; quad < n_quad_pts; ++quad)
+      {
+        for (unsigned int i = 0; i < n_doubles_per_quad_stress; ++i)
+        {
+          _stress[cell_id][quad].access_raw_entry(i) =
+              data_to_unpack[cell_id][stress_offset +
+                                      quad * n_doubles_per_quad_stress + i];
+          _back_stress[cell_id][quad].access_raw_entry(i) =
+              data_to_unpack[cell_id][back_stress_offset +
+                                      quad * n_doubles_per_quad_stress + i];
+        }
+      }
+    }
+    ++cell_id;
+  }
+}
+
+template <int dim, int p_order, typename MaterialStates,
+          typename MemorySpaceType>
+void MechanicalPhysics<dim, p_order, MaterialStates, MemorySpaceType>::
+    setup_dofs(
+        dealii::DoFHandler<dim> const &thermal_dof_handler,
+        dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host> const
+            &temperature,
+        std::vector<bool> const &has_melted,
+        std::vector<std::shared_ptr<BodyForce<dim>>> const &body_forces)
 {
   _mechanical_operator->update_temperature(thermal_dof_handler, temperature,
                                            has_melted);
@@ -139,78 +275,96 @@ void MechanicalPhysics<dim, MemorySpaceType>::setup_dofs(
 
     std::vector<double> cell_values(n_dofs_per_cell);
     saved_old_displacement.reserve(n_old_active_cells);
-    for (auto const &cell :
-         dealii::filter_iterators(_dof_handler.active_cell_iterators(),
-                                  dealii::IteratorFilters::LocallyOwnedCell()))
+    for (auto const &cell : _dof_handler.active_cell_iterators())
     {
-      auto fe_index = cell->active_fe_index();
-      if (fe_index == 0)
+      if (cell->is_locally_owned())
       {
-        // The cell contains solid material, we need to save the displacement
-        cell->get_dof_indices(global_dof_indices);
-        for (unsigned int i = 0; i < n_dofs_per_cell; ++i)
+        auto fe_index = cell->active_fe_index();
+        if (fe_index == 0)
         {
-          cell_values[i] = _old_displacement[global_dof_indices[i]];
+          // The cell contains solid material, we need to save the displacement
+          cell->get_dof_indices(global_dof_indices);
+          for (unsigned int i = 0; i < n_dofs_per_cell; ++i)
+          {
+            cell_values[i] = _old_displacement[global_dof_indices[i]];
+          }
         }
+        else
+        {
+          // The cell does not contain material or it is liquid. The
+          // displacement is ignored.
+          cell_values.assign(n_dofs_per_cell, 0.);
+        }
+        saved_old_displacement.push_back(cell_values);
       }
       else
       {
-        // The cell does not contain material or it is liquid. The displacement
-        // is ignored.
-        cell_values.assign(n_dofs_per_cell, 0.);
+        saved_old_displacement.push_back(std::vector<double>(n_dofs_per_cell));
       }
-      saved_old_displacement.push_back(cell_values);
     }
   }
 
   // Now we can update the fe indices and the plastic variables.
-  for (auto const &cell :
-       dealii::filter_iterators(_dof_handler.active_cell_iterators(),
-                                dealii::IteratorFilters::LocallyOwnedCell()))
+  for (auto const &cell : _dof_handler.active_cell_iterators())
   {
-    auto current_fe_index = cell->active_fe_index();
-    if (_material_properties.get_state_ratio(cell, MaterialState::solid) > 0.99)
+    if (cell->is_locally_owned())
     {
-      // Only enable the cell if it is also enabled for the thermal simulation
-      // Get the thermal DoFHandler cell iterator
-      dealii::DoFCellAccessor<dim, dim, false> thermal_cell(
-          &(_dof_handler.get_triangulation()), cell->level(), cell->index(),
-          &thermal_dof_handler);
-      auto updated_fe_index = thermal_cell.active_fe_index();
-      if (current_fe_index == updated_fe_index)
+      auto current_fe_index = cell->active_fe_index();
+      if (_material_properties.get_state_ratio(
+              cell, MaterialStates::State::solid) > 0.99)
       {
-        // The cells is unchanged, we just copy the plastic variables as-is.
-        tmp_plastic_internal_variable.push_back(
-            _plastic_internal_variable[cell_id]);
-        tmp_stress.push_back(_stress[cell_id]);
-        tmp_back_stress.push_back(_back_stress[cell_id]);
+        // Only enable the cell if it is also enabled for the thermal simulation
+        // Get the thermal DoFHandler cell iterator
+        dealii::DoFCellAccessor<dim, dim, false> thermal_cell(
+            &(_dof_handler.get_triangulation()), cell->level(), cell->index(),
+            &thermal_dof_handler);
+        auto updated_fe_index = thermal_cell.active_fe_index();
+        if (current_fe_index == updated_fe_index)
+        {
+          // The cells is unchanged, we just copy the plastic variables as-is.
+          tmp_plastic_internal_variable.push_back(
+              _plastic_internal_variable[cell_id]);
+          tmp_stress.push_back(_stress[cell_id]);
+          tmp_back_stress.push_back(_back_stress[cell_id]);
+        }
+        else
+        {
+          // The cell has solidified or material has been added. The new cells
+          // are initialized with default values.
+          auto elastic_limit = _material_properties.get_mechanical_property(
+              cell, StateProperty::elastic_limit);
+          tmp_plastic_internal_variable.push_back(
+              std::vector<double>(n_quad_pts, elastic_limit));
+          tmp_stress.push_back(
+              std::vector<dealii::SymmetricTensor<2, dim>>(n_quad_pts));
+          tmp_back_stress.push_back(
+              std::vector<dealii::SymmetricTensor<2, dim>>(n_quad_pts));
+
+          cell->set_active_fe_index(updated_fe_index);
+        }
       }
       else
       {
-        // The cell has solidified or material has been added. The new cells are
-        // initialized with default values.
-        auto elastic_limit = _material_properties.get_mechanical_property(
-            cell, StateProperty::elastic_limit);
-        tmp_plastic_internal_variable.push_back(
-            std::vector<double>(n_quad_pts, elastic_limit));
+        // The cell is liquid. We don't need to save the plastic variables.
+        cell->set_active_fe_index(1);
+        tmp_plastic_internal_variable.push_back(std::vector<double>(
+            n_quad_pts, std::numeric_limits<double>::signaling_NaN()));
         tmp_stress.push_back(
             std::vector<dealii::SymmetricTensor<2, dim>>(n_quad_pts));
         tmp_back_stress.push_back(
             std::vector<dealii::SymmetricTensor<2, dim>>(n_quad_pts));
-
-        cell->set_active_fe_index(updated_fe_index);
       }
     }
     else
     {
-      // The cell is liquid. We don't need to save the plastic variables.
-      cell->set_active_fe_index(1);
+      tmp_plastic_internal_variable.push_back(std::vector<double>(
+          n_quad_pts, std::numeric_limits<double>::signaling_NaN()));
+      tmp_stress.push_back(
+          std::vector<dealii::SymmetricTensor<2, dim>>(n_quad_pts));
+      tmp_back_stress.push_back(
+          std::vector<dealii::SymmetricTensor<2, dim>>(n_quad_pts));
     }
-
-    if (current_fe_index == 0)
-    {
-      ++cell_id;
-    }
+    ++cell_id;
   }
   _plastic_internal_variable.swap(tmp_plastic_internal_variable);
   _stress.swap(tmp_stress);
@@ -219,22 +373,29 @@ void MechanicalPhysics<dim, MemorySpaceType>::setup_dofs(
   setup_dofs(body_forces);
 
   // Update _old_displacement if necessary
-  _old_displacement.reinit(_mechanical_operator->rhs().get_partitioner());
+  const dealii::IndexSet locally_relevant_dofs =
+      dealii::DoFTools::extract_locally_relevant_dofs(_dof_handler);
+  const dealii::IndexSet locally_owned_dofs = _dof_handler.locally_owned_dofs();
+  _old_displacement.reinit(locally_owned_dofs, locally_relevant_dofs,
+                           _dof_handler.get_communicator());
+
   if (saved_old_displacement.size())
   {
     cell_id = 0;
-    for (auto const &cell :
-         dealii::filter_iterators(_dof_handler.active_cell_iterators(),
-                                  dealii::IteratorFilters::LocallyOwnedCell()))
+    for (auto const &cell : _dof_handler.active_cell_iterators())
     {
-      auto fe_index = cell->active_fe_index();
-      if (fe_index == 0)
+      if (cell->is_locally_owned())
       {
-        cell->get_dof_indices(global_dof_indices);
-        for (unsigned int i = 0; i < n_dofs_per_cell; ++i)
+        auto fe_index = cell->active_fe_index();
+        if (fe_index == 0)
         {
-          _old_displacement[global_dof_indices[i]] =
-              saved_old_displacement[cell_id][i];
+          cell->get_dof_indices(global_dof_indices);
+          for (unsigned int i = 0; i < n_dofs_per_cell; ++i)
+          {
+            if (locally_owned_dofs.is_element(global_dof_indices[i]))
+              _old_displacement[global_dof_indices[i]] =
+                  saved_old_displacement[cell_id][i];
+          }
         }
       }
       ++cell_id;
@@ -243,12 +404,16 @@ void MechanicalPhysics<dim, MemorySpaceType>::setup_dofs(
   }
 }
 
-template <int dim, typename MemorySpaceType>
+template <int dim, int p_order, typename MaterialStates,
+          typename MemorySpaceType>
 dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host>
-MechanicalPhysics<dim, MemorySpaceType>::solve()
+MechanicalPhysics<dim, p_order, MaterialStates, MemorySpaceType>::solve()
 {
+  dealii::IndexSet locally_relevant_dofs =
+      dealii::DoFTools::extract_locally_relevant_dofs(_dof_handler);
   dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host>
-      displacement(_mechanical_operator->rhs().get_partitioner());
+      displacement(_dof_handler.locally_owned_dofs(), locally_relevant_dofs,
+                   _mechanical_operator->rhs().get_mpi_communicator());
 
   // Solve the mechanical problem assuming that the deformation is elastic
   // TODO check that we are computing only difference of the displacement
@@ -270,13 +435,16 @@ MechanicalPhysics<dim, MemorySpaceType>::solve()
   // If the stress is under the yield criterion, the deformation is elastic and
   // we are done. Otherwise we need to use the radial return algorithm to
   // compute the plastic deformation.
-  auto incremental_displacement = displacement;
-  // TODO Remove this once we support refinement/material addition
-  if (displacement.get_partitioner()->is_compatible(
-          *(_old_displacement.get_partitioner())))
+  dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host>
+      incremental_displacement(
+          _dof_handler.locally_owned_dofs(), locally_relevant_dofs,
+          _mechanical_operator->rhs().get_mpi_communicator());
+  incremental_displacement = displacement;
+  if (_old_displacement.size() > 0)
   {
     incremental_displacement -= _old_displacement;
   }
+  incremental_displacement.update_ghost_values();
   compute_stress(incremental_displacement);
 
   _old_displacement.swap(displacement);
@@ -284,10 +452,12 @@ MechanicalPhysics<dim, MemorySpaceType>::solve()
   return _old_displacement;
 }
 
-template <int dim, typename MemorySpaceType>
-void MechanicalPhysics<dim, MemorySpaceType>::compute_stress(
-    dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host> const
-        &displacement)
+template <int dim, int p_order, typename MaterialStates,
+          typename MemorySpaceType>
+void MechanicalPhysics<dim, p_order, MaterialStates, MemorySpaceType>::
+    compute_stress(
+        dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host> const
+            &displacement)
 {
   dealii::hp::FEValues<dim> displacement_hp_fe_values(
       _fe_collection, _q_collection, dealii::update_gradients);
@@ -297,71 +467,74 @@ void MechanicalPhysics<dim, MemorySpaceType>::compute_stress(
   std::vector<dealii::SymmetricTensor<2, dim>> strain_tensor(n_q_points);
   const dealii::FEValuesExtractors::Vector displacement_extr(0);
   unsigned int cell_id = 0;
-  for (auto const &cell :
-       _dof_handler.active_cell_iterators() |
-           dealii::IteratorFilters::ActiveFEIndexEqualTo(0, true))
+  for (auto const &cell : _dof_handler.active_cell_iterators())
   {
-    // Formulation based on the combined isotropic-kinematic hardening model for
-    // J2 plasticity in Chapter 3 of R. Borja, Plasticity: Modeling and
-    // Computation, Springer-Verlag, 2013. DOI: 10.1007/978-3-642-38547-6
-    //
-    // Compute the strain. We get the strain for all the quadrature points at
-    // once.
-    displacement_hp_fe_values.reinit(cell);
-    auto const &fe_values = displacement_hp_fe_values.get_present_fe_values();
-    cell->get_dof_indices(local_dof_indices);
-
-    fe_values[displacement_extr].get_function_symmetric_gradients(
-        displacement, strain_tensor);
-
-    double const lambda = _material_properties.get_mechanical_property(
-        cell, StateProperty::lame_first_parameter);
-    double const mu = _material_properties.get_mechanical_property(
-        cell, StateProperty::lame_second_parameter);
-    double const plastic_modulus = _material_properties.get_mechanical_property(
-        cell, StateProperty::plastic_modulus);
-    double const iso_hardening_coef =
-        _material_properties.get_mechanical_property(
-            cell, StateProperty::isotropic_hardening);
-    dealii::SymmetricTensor<4, dim> stiffness_tensor =
-        lambda * dealii::outer_product(dealii::unit_symmetric_tensor<dim>(),
-                                       dealii::unit_symmetric_tensor<dim>()) +
-        2 * mu * dealii::identity_tensor<dim>();
-    // Loop over the quadrature points.
-    for (auto const q : fe_values.quadrature_point_indices())
+    if (cell->is_locally_owned() && cell->active_fe_index() == 0)
     {
-      // Compute the trial elastic stress.
-      dealii::SymmetricTensor<2, dim> elastic_stress = _stress[cell_id][q];
-      elastic_stress += stiffness_tensor * strain_tensor[q];
+      // Formulation based on the combined isotropic-kinematic hardening model
+      // for J2 plasticity in Chapter 3 of R. Borja, Plasticity: Modeling and
+      // Computation, Springer-Verlag, 2013. DOI: 10.1007/978-3-642-38547-6
+      //
+      // Compute the strain. We get the strain for all the quadrature points at
+      // once.
+      displacement_hp_fe_values.reinit(cell);
+      auto const &fe_values = displacement_hp_fe_values.get_present_fe_values();
+      cell->get_dof_indices(local_dof_indices);
 
-      auto stress_deviator = dealii::deviator(elastic_stress);
-      auto effective_stress = stress_deviator - _back_stress[cell_id][q];
-      double const effective_stress_norm = effective_stress.norm();
-      if (effective_stress_norm < _plastic_internal_variable[cell_id][q])
+      fe_values[displacement_extr].get_function_symmetric_gradients(
+          displacement, strain_tensor);
+
+      double const lambda = _material_properties.get_mechanical_property(
+          cell, StateProperty::lame_first_parameter);
+      double const mu = _material_properties.get_mechanical_property(
+          cell, StateProperty::lame_second_parameter);
+      double const plastic_modulus =
+          _material_properties.get_mechanical_property(
+              cell, StateProperty::plastic_modulus);
+      double const iso_hardening_coef =
+          _material_properties.get_mechanical_property(
+              cell, StateProperty::isotropic_hardening);
+      dealii::SymmetricTensor<4, dim> stiffness_tensor =
+          lambda * dealii::outer_product(dealii::unit_symmetric_tensor<dim>(),
+                                         dealii::unit_symmetric_tensor<dim>()) +
+          2 * mu * dealii::identity_tensor<dim>();
+      // Loop over the quadrature points.
+      for (auto const q : fe_values.quadrature_point_indices())
       {
-        // The deformation is elastic. We just update the stress with the
-        // elastic stress.
-        _stress[cell_id][q] = elastic_stress;
-      }
-      else
-      {
-        // The deformation is plastic. We need to compute a new stress and
-        // update the plastic internal variable and the back stress.
-        double plastic_strain_increment =
-            (effective_stress_norm - _plastic_internal_variable[cell_id][q]) /
-            (2. * mu + plastic_modulus);
-        auto plastic_flow_direction = effective_stress / effective_stress_norm;
-        // Update stress
-        _stress[cell_id][q] = elastic_stress - 2. * mu *
-                                                   plastic_strain_increment *
-                                                   plastic_flow_direction;
-        // Update plastic internal variable
-        _plastic_internal_variable[cell_id][q] +=
-            iso_hardening_coef * plastic_modulus * plastic_strain_increment;
-        // Update back stress
-        _back_stress[cell_id][q] += (1. - iso_hardening_coef) *
-                                    plastic_modulus * plastic_modulus *
-                                    plastic_flow_direction;
+        // Compute the trial elastic stress.
+        dealii::SymmetricTensor<2, dim> elastic_stress = _stress[cell_id][q];
+        elastic_stress += stiffness_tensor * strain_tensor[q];
+
+        auto stress_deviator = dealii::deviator(elastic_stress);
+        auto effective_stress = stress_deviator - _back_stress[cell_id][q];
+        double const effective_stress_norm = effective_stress.norm();
+        if (effective_stress_norm < _plastic_internal_variable[cell_id][q])
+        {
+          // The deformation is elastic. We just update the stress with the
+          // elastic stress.
+          _stress[cell_id][q] = elastic_stress;
+        }
+        else
+        {
+          // The deformation is plastic. We need to compute a new stress and
+          // update the plastic internal variable and the back stress.
+          double plastic_strain_increment =
+              (effective_stress_norm - _plastic_internal_variable[cell_id][q]) /
+              (2. * mu + plastic_modulus);
+          auto plastic_flow_direction =
+              effective_stress / effective_stress_norm;
+          // Update stress
+          _stress[cell_id][q] = elastic_stress - 2. * mu *
+                                                     plastic_strain_increment *
+                                                     plastic_flow_direction;
+          // Update plastic internal variable
+          _plastic_internal_variable[cell_id][q] +=
+              iso_hardening_coef * plastic_modulus * plastic_strain_increment;
+          // Update back stress
+          _back_stress[cell_id][q] += (1. - iso_hardening_coef) *
+                                      plastic_modulus * plastic_modulus *
+                                      plastic_flow_direction;
+        }
       }
     }
     ++cell_id;
@@ -370,7 +543,5 @@ void MechanicalPhysics<dim, MemorySpaceType>::compute_stress(
 
 } // namespace adamantine
 
-INSTANTIATE_DIM_HOST(MechanicalPhysics)
-#ifdef ADAMANTINE_HAVE_CUDA
-INSTANTIATE_DIM_DEVICE(MechanicalPhysics)
-#endif
+INSTANTIATE_DIM_PORDER_MATERIALSTATES_HOST(TUPLE(MechanicalPhysics))
+INSTANTIATE_DIM_PORDER_MATERIALSTATES_DEVICE(TUPLE(MechanicalPhysics))

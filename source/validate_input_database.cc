@@ -1,4 +1,4 @@
-/* Copyright (c) 2021, the adamantine authors.
+/* Copyright (c) 2021 - 2024, the adamantine authors.
  *
  * This file is subject to the Modified BSD License and may not be distributed
  * without copyright and license information. Please refer to the file LICENSE
@@ -77,8 +77,8 @@ void validate_input_database(boost::property_tree::ptree &database)
     // PropertyTreeInput discretization.thermal.fe_degree
     unsigned int const fe_degree =
         database.get<unsigned int>("discretization.thermal.fe_degree");
-    ASSERT_THROW(fe_degree > 0 && fe_degree < 11,
-                 "Error: fe_degree should be between 1 and 10.");
+    ASSERT_THROW(fe_degree > 0 && fe_degree < 6,
+                 "Error: fe_degree should be between 1 and 5.");
 
     // PropertyTreeInput discretization.thermal.quadrature
     boost::optional<std::string> quadrature_type_optional =
@@ -98,16 +98,6 @@ void validate_input_database(boost::property_tree::ptree &database)
   // Tree: geometry
   unsigned int dim = database.get<unsigned int>("geometry.dim");
   ASSERT_THROW((dim == 2) || (dim == 3), "Error: dim should be 2 or 3");
-
-  boost::optional<double> material_height_optional =
-      database.get_optional<double>("geometry.material_height");
-
-  if (material_height_optional)
-  {
-    double material_height = material_height_optional.get();
-    ASSERT_THROW(material_height >= 0.0,
-                 "Error: Material height must be non-negative.");
-  }
 
   bool use_powder = database.get("geometry.use_powder", false);
 
@@ -371,28 +361,23 @@ void validate_input_database(boost::property_tree::ptree &database)
   // Tree: time_stepping
   std::string time_stepping_method =
       database.get<std::string>("time_stepping.method");
-  ASSERT_THROW(
-      boost::iequals(time_stepping_method, "forward_euler") ||
-          boost::iequals(time_stepping_method, "rk_third_order") ||
-          boost::iequals(time_stepping_method, "rk_fourth_order") ||
-          boost::iequals(time_stepping_method, "heun_euler") ||
-          boost::iequals(time_stepping_method, "bogacki_shampine") ||
-          boost::iequals(time_stepping_method, "dopri") ||
-          boost::iequals(time_stepping_method, "fehlberg") ||
-          boost::iequals(time_stepping_method, "cash_karp") ||
-          boost::iequals(time_stepping_method, "backward_euler") ||
-          boost::iequals(time_stepping_method, "implicit_midpoint") ||
-          boost::iequals(time_stepping_method, "crank_nicolson") ||
-          boost::iequals(time_stepping_method, "sdirk2"),
-      "Error: Time stepping method, '" + time_stepping_method +
-          "', is not recognized. Valid options are: 'forward_euler', "
-          "'rk_third_order', 'rk_fourth_order', 'heun_euler', "
-          "'bogacki_shampine', 'dopri', 'fehlberg', 'cash_karp', "
-          "'backward_euler', 'implicit_midpoint', 'crank_nicolson', and "
-          "'sdirk2'.");
+  ASSERT_THROW(boost::iequals(time_stepping_method, "forward_euler") ||
+                   boost::iequals(time_stepping_method, "rk_third_order") ||
+                   boost::iequals(time_stepping_method, "rk_fourth_order") ||
+                   boost::iequals(time_stepping_method, "backward_euler") ||
+                   boost::iequals(time_stepping_method, "implicit_midpoint") ||
+                   boost::iequals(time_stepping_method, "crank_nicolson") ||
+                   boost::iequals(time_stepping_method, "sdirk2"),
+               "Error: Time stepping method, '" + time_stepping_method +
+                   "', is not recognized. Valid options are: 'forward_euler', "
+                   "'rk_third_order', 'rk_fourth_order', 'backward_euler', "
+                   "'implicit_midpoint', 'crank_nicolson', and 'sdirk2'.");
 
-  ASSERT_THROW(database.get<double>("time_stepping.duration") >= 0.0,
-               "Error: Time stepping duration must be non-negative.");
+  if (database.get("time.scan_path_for_duration", false))
+  {
+    ASSERT_THROW(database.get<double>("time_stepping.duration") >= 0.0,
+                 "Error: Time stepping duration must be non-negative.");
+  }
 
   ASSERT_THROW(database.get<double>("time_stepping.time_step") >= 0.0,
                "Error: Time step must be non-negative.");
@@ -493,6 +478,70 @@ void validate_input_database(boost::property_tree::ptree &database)
     ASSERT_THROW(false,
                  "Error: Unknown localization cutoff function. Valid options "
                  "are 'gaspari_cohn', 'step_function', and 'none'.");
+  }
+
+  // Tree: units
+  boost::optional<std::string> mesh_unit =
+      database.get_optional<std::string>("units.mesh");
+  if (mesh_unit && (!(boost::iequals(mesh_unit.get(), "millimeter") ||
+                      boost::iequals(mesh_unit.get(), "centimeter") ||
+                      boost::iequals(mesh_unit.get(), "inch") ||
+                      boost::iequals(mesh_unit.get(), "meter"))))
+  {
+    ASSERT_THROW(false,
+                 "Error: Unknown unit associated with the mesh. Valid "
+                 "options are `millimeter`, `centimeter`, `inch`, and `meter`");
+  }
+
+  boost::optional<std::string> heat_source_power_unit =
+      database.get_optional<std::string>("units.heat_source.power");
+  if (heat_source_power_unit &&
+      (!(boost::iequals(heat_source_power_unit.get(), "milliwatt") ||
+         boost::iequals(heat_source_power_unit.get(), "watt"))))
+  {
+    ASSERT_THROW(false,
+                 "Error: Unknown unit associated with the power of the "
+                 "heat source. Valid options are `milliwatt`, and `watt`");
+  }
+
+  boost::optional<std::string> heat_source_velocity_unit =
+      database.get_optional<std::string>("units.heat_source.velocity");
+  if (heat_source_velocity_unit &&
+      (!(boost::iequals(heat_source_velocity_unit.get(), "millimeter/second") ||
+         boost::iequals(heat_source_velocity_unit.get(), "centimeter/second") ||
+         boost::iequals(heat_source_velocity_unit.get(), "meter/second"))))
+  {
+    ASSERT_THROW(false,
+                 "Error: Unknown unit associated with the velocity of the heat "
+                 "source. Valid options are `millimeter/second`, "
+                 "`centimeter/second`, and `meter/second`");
+  }
+
+  boost::optional<std::string> heat_source_dimension_unit =
+      database.get_optional<std::string>("units.heat_source.dimension");
+  if (heat_source_dimension_unit &&
+      (!(boost::iequals(heat_source_dimension_unit.get(), "millimeter") ||
+         boost::iequals(heat_source_dimension_unit.get(), "centimeter") ||
+         boost::iequals(heat_source_dimension_unit.get(), "inch") ||
+         boost::iequals(heat_source_dimension_unit.get(), "meter"))))
+  {
+    ASSERT_THROW(
+        false,
+        "Error: Unknown unit associated with the dimension of the heat source. "
+        "Valid options are `millimeter`, `centimeter`, `inch`, and `meter`");
+  }
+
+  boost::optional<std::string> heat_source_scan_path_unit =
+      database.get_optional<std::string>("units.heat_source.scan_path");
+  if (heat_source_scan_path_unit &&
+      (!(boost::iequals(heat_source_scan_path_unit.get(), "millimeter") ||
+         boost::iequals(heat_source_scan_path_unit.get(), "centimeter") ||
+         boost::iequals(heat_source_scan_path_unit.get(), "inch") ||
+         boost::iequals(heat_source_scan_path_unit.get(), "meter"))))
+  {
+    ASSERT_THROW(false,
+                 "Error: Unknown unit associated with the scan path. Valid "
+                 "options are `millimeter`, `centimeter`, `inch`, and `meter`");
   }
 }
 } // namespace adamantine

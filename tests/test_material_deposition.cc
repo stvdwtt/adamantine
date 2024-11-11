@@ -1,10 +1,11 @@
-/* Copyright (c) 2021 - 2022, the adamantine authors.
+/* Copyright (c) 2021 - 2024, the adamantine authors.
  *
  * This file is subject to the Modified BSD License and may not be distributed
  * without copyright and license information. Please refer to the file LICENSE
  * for the text and further information on this license.
  */
 
+#include "MaterialStates.hh"
 #define BOOST_TEST_MODULE MaterialDeposition
 
 #include <Geometry.hh>
@@ -118,8 +119,11 @@ BOOST_AUTO_TEST_CASE(get_elements_to_activate_2d)
     geometry_database.put("length_divisions", 12);
     geometry_database.put("height", 6);
     geometry_database.put("height_divisions", 6);
+    boost::optional<boost::property_tree::ptree const &>
+        units_optional_database;
 
-    adamantine::Geometry<2> geometry(communicator, geometry_database);
+    adamantine::Geometry<2> geometry(communicator, geometry_database,
+                                     units_optional_database);
     dealii::parallel::distributed::Triangulation<2> const &tria =
         geometry.get_triangulation();
 
@@ -180,8 +184,11 @@ BOOST_AUTO_TEST_CASE(get_elements_to_activate_3d)
     geometry_database.put("width_divisions", 6);
     geometry_database.put("height", 6);
     geometry_database.put("height_divisions", 6);
+    boost::optional<boost::property_tree::ptree const &>
+        units_optional_database;
 
-    adamantine::Geometry<3> geometry(communicator, geometry_database);
+    adamantine::Geometry<3> geometry(communicator, geometry_database,
+                                     units_optional_database);
     dealii::parallel::distributed::Triangulation<3> const &tria =
         geometry.get_triangulation();
 
@@ -252,10 +259,12 @@ BOOST_AUTO_TEST_CASE(material_deposition)
   database.put("geometry.material_deposition", true);
   database.put("geometry.material_deposition_file",
                "material_path_test_material_deposition.txt");
+  boost::optional<boost::property_tree::ptree const &> units_optional_database;
   // Build Geometry
   boost::property_tree::ptree geometry_database =
       database.get_child("geometry");
-  adamantine::Geometry<dim> geometry(communicator, geometry_database);
+  adamantine::Geometry<dim> geometry(communicator, geometry_database,
+                                     units_optional_database);
 
   // MaterialProperty database
   database.put("materials.property_format", "polynomial");
@@ -273,7 +282,8 @@ BOOST_AUTO_TEST_CASE(material_deposition)
   // Build MaterialProperty
   boost::property_tree::ptree material_property_database =
       database.get_child("materials");
-  adamantine::MaterialProperty<dim, dealii::MemorySpace::Host>
+  adamantine::MaterialProperty<dim, 1, adamantine::SolidLiquidPowder,
+                               dealii::MemorySpace::Host>
       material_properties(communicator, geometry.get_triangulation(),
                           material_property_database);
 
@@ -285,21 +295,18 @@ BOOST_AUTO_TEST_CASE(material_deposition)
   database.put("boundary.type", "adiabatic");
 
   // Build ThermalPhysics
-  adamantine::ThermalPhysics<dim, dim, dealii::MemorySpace::Host,
-                             dealii::QGauss<1>>
+  adamantine::ThermalPhysics<dim, 1, dim, adamantine::SolidLiquidPowder,
+                             dealii::MemorySpace::Host, dealii::QGauss<1>>
       thermal_physics(communicator, database, geometry, material_properties);
-  thermal_physics.setup_dofs();
-  thermal_physics.update_material_deposition_orientation();
-  thermal_physics.compute_inverse_mass_matrix();
+  thermal_physics.setup();
   auto &dof_handler = thermal_physics.get_dof_handler();
 
   auto [material_deposition_boxes, deposition_times, deposition_cos,
         deposition_sin] =
       adamantine::read_material_deposition<dim>(geometry_database);
   dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host> solution;
+  thermal_physics.initialize_dof_vector(0., solution);
   std::vector<adamantine::Timer> timers(adamantine::Timing::n_timers);
-  thermal_physics.initialize_dof_vector(solution);
-  thermal_physics.get_state_from_material_properties();
   std::vector<unsigned int> n_cells_ref = {610, 620, 630, 650, 650,
                                            660, 670, 680, 720, 720};
   double const time_step = 0.1;
@@ -330,9 +337,17 @@ BOOST_AUTO_TEST_CASE(material_deposition)
 
       std::vector<bool> has_melted(deposition_cos.size(), false);
 
-      thermal_physics.add_material(
+      thermal_physics.add_material_start(
           elements_to_activate, deposition_cos, deposition_sin, has_melted,
-          activation_start, activation_end, initial_temperature, solution);
+          activation_start, activation_end, solution);
+
+      dealii::parallel::distributed::Triangulation<dim> &triangulation =
+          dynamic_cast<dealii::parallel::distributed::Triangulation<dim> &>(
+              const_cast<dealii::Triangulation<dim> &>(
+                  dof_handler.get_triangulation()));
+      triangulation.execute_coarsening_and_refinement();
+
+      thermal_physics.add_material_end(initial_temperature, solution);
     }
 
     time =
@@ -354,7 +369,9 @@ BOOST_AUTO_TEST_CASE(material_deposition)
 
 BOOST_AUTO_TEST_CASE(deposition_from_scan_path_2d, *utf::tolerance(1e-13))
 {
-  adamantine::ScanPath scan_path("scan_path.txt", "segment");
+  boost::optional<boost::property_tree::ptree const &> units_optional_database;
+  adamantine::ScanPath scan_path("scan_path.txt", "segment",
+                                 units_optional_database);
 
   boost::property_tree::ptree database;
   database.put("deposition_length", 0.0005);
@@ -402,7 +419,9 @@ BOOST_AUTO_TEST_CASE(deposition_from_scan_path_2d, *utf::tolerance(1e-13))
 
 BOOST_AUTO_TEST_CASE(deposition_from_scan_path_3d, *utf::tolerance(1e-13))
 {
-  adamantine::ScanPath scan_path("scan_path.txt", "segment");
+  boost::optional<boost::property_tree::ptree const &> units_optional_database;
+  adamantine::ScanPath scan_path("scan_path.txt", "segment",
+                                 units_optional_database);
 
   boost::property_tree::ptree database;
   database.put("deposition_length", 0.0005);
@@ -415,19 +434,19 @@ BOOST_AUTO_TEST_CASE(deposition_from_scan_path_3d, *utf::tolerance(1e-13))
 
   // Check the first and last boxes
   BOOST_TEST(bounding_boxes.at(0).get_boundary_points().first(0) == -0.00025);
-  BOOST_TEST(bounding_boxes.at(0).get_boundary_points().first(1) == -0.05);
+  BOOST_TEST(bounding_boxes.at(0).get_boundary_points().first(1) == 0.05);
   BOOST_TEST(bounding_boxes.at(0).get_boundary_points().first(2) == 0.0);
   BOOST_TEST(bounding_boxes.at(0).get_boundary_points().second(0) == 0.00025);
-  BOOST_TEST(bounding_boxes.at(0).get_boundary_points().second(1) == 0.05);
+  BOOST_TEST(bounding_boxes.at(0).get_boundary_points().second(1) == 0.15);
   BOOST_TEST(bounding_boxes.at(0).get_boundary_points().second(2) == 0.1);
 
   BOOST_TEST(bounding_boxes.at(4).get_boundary_points().first(0) ==
              (0.002 - 0.00025));
-  BOOST_TEST(bounding_boxes.at(4).get_boundary_points().first(1) == -0.05);
+  BOOST_TEST(bounding_boxes.at(4).get_boundary_points().first(1) == 0.05);
   BOOST_TEST(bounding_boxes.at(4).get_boundary_points().first(2) == 0.0);
   BOOST_TEST(bounding_boxes.at(4).get_boundary_points().second(0) ==
              (0.002 + 0.00025));
-  BOOST_TEST(bounding_boxes.at(4).get_boundary_points().second(1) == 0.05);
+  BOOST_TEST(bounding_boxes.at(4).get_boundary_points().second(1) == 0.15);
   BOOST_TEST(bounding_boxes.at(4).get_boundary_points().second(2) == 0.1);
 
   // Check the times
@@ -454,7 +473,9 @@ BOOST_AUTO_TEST_CASE(deposition_from_scan_path_3d, *utf::tolerance(1e-13))
 
 BOOST_AUTO_TEST_CASE(deposition_from_L_scan_path_3d, *utf::tolerance(1e-13))
 {
-  adamantine::ScanPath scan_path("scan_path_L.txt", "segment");
+  boost::optional<boost::property_tree::ptree const &> units_optional_database;
+  adamantine::ScanPath scan_path("scan_path_L.txt", "segment",
+                                 units_optional_database);
 
   boost::property_tree::ptree database;
   database.put("deposition_length", 0.0005);
@@ -540,7 +561,9 @@ BOOST_AUTO_TEST_CASE(deposition_from_L_scan_path_3d, *utf::tolerance(1e-13))
 BOOST_AUTO_TEST_CASE(deposition_from_diagonal_scan_path_3d,
                      *utf::tolerance(1e-10))
 {
-  adamantine::ScanPath scan_path("scan_path_diagonal.txt", "segment");
+  boost::optional<boost::property_tree::ptree const &> units_optional_database;
+  adamantine::ScanPath scan_path("scan_path_diagonal.txt", "segment",
+                                 units_optional_database);
 
   boost::property_tree::ptree database;
   database.put("deposition_length", 0.0005);

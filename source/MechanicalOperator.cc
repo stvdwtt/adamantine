@@ -1,4 +1,4 @@
-/* Copyright (c) 2022 - 2023, the adamantine authors.
+/* Copyright (c) 2022 - 2024, the adamantine authors.
  *
  * This file is subject to the Modified BSD License and may not be distributed
  * without copyright and license information. Please refer to the file LICENSE
@@ -26,19 +26,22 @@
 
 namespace adamantine
 {
-template <int dim, typename MemorySpaceType>
-MechanicalOperator<dim, MemorySpaceType>::MechanicalOperator(
-    MPI_Comm const &communicator,
-    MaterialProperty<dim, MemorySpaceType> &material_properties,
-    std::vector<double> const reference_temperatures)
+template <int dim, int p_order, typename MaterialStates,
+          typename MemorySpaceType>
+MechanicalOperator<dim, p_order, MaterialStates, MemorySpaceType>::
+    MechanicalOperator(MPI_Comm const &communicator,
+                       MaterialProperty<dim, p_order, MaterialStates,
+                                        MemorySpaceType> &material_properties,
+                       std::vector<double> const reference_temperatures)
     : _communicator(communicator),
       _reference_temperatures(reference_temperatures),
       _material_properties(material_properties)
 {
 }
 
-template <int dim, typename MemorySpaceType>
-void MechanicalOperator<dim, MemorySpaceType>::reinit(
+template <int dim, int p_order, typename MaterialStates,
+          typename MemorySpaceType>
+void MechanicalOperator<dim, p_order, MaterialStates, MemorySpaceType>::reinit(
     dealii::DoFHandler<dim> const &dof_handler,
     dealii::AffineConstraints<double> const &affine_constraints,
     dealii::hp::QCollection<dim> const &q_collection,
@@ -50,8 +53,9 @@ void MechanicalOperator<dim, MemorySpaceType>::reinit(
   assemble_system(body_forces);
 }
 
-template <int dim, typename MemorySpaceType>
-void MechanicalOperator<dim, MemorySpaceType>::vmult(
+template <int dim, int p_order, typename MaterialStates,
+          typename MemorySpaceType>
+void MechanicalOperator<dim, p_order, MaterialStates, MemorySpaceType>::vmult(
     dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host> &dst,
     dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host> const
         &src) const
@@ -59,8 +63,9 @@ void MechanicalOperator<dim, MemorySpaceType>::vmult(
   _system_matrix.vmult(dst, src);
 }
 
-template <int dim, typename MemorySpaceType>
-void MechanicalOperator<dim, MemorySpaceType>::Tvmult(
+template <int dim, int p_order, typename MaterialStates,
+          typename MemorySpaceType>
+void MechanicalOperator<dim, p_order, MaterialStates, MemorySpaceType>::Tvmult(
     dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host> &dst,
     dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host> const
         &src) const
@@ -68,39 +73,47 @@ void MechanicalOperator<dim, MemorySpaceType>::Tvmult(
   _system_matrix.Tvmult(dst, src);
 }
 
-template <int dim, typename MemorySpaceType>
-void MechanicalOperator<dim, MemorySpaceType>::vmult_add(
-    dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host> &dst,
-    dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host> const
-        &src) const
+template <int dim, int p_order, typename MaterialStates,
+          typename MemorySpaceType>
+void MechanicalOperator<dim, p_order, MaterialStates, MemorySpaceType>::
+    vmult_add(
+        dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host> &dst,
+        dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host> const
+            &src) const
 {
   _system_matrix.vmult_add(dst, src);
 }
 
-template <int dim, typename MemorySpaceType>
-void MechanicalOperator<dim, MemorySpaceType>::Tvmult_add(
-    dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host> &dst,
-    dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host> const
-        &src) const
+template <int dim, int p_order, typename MaterialStates,
+          typename MemorySpaceType>
+void MechanicalOperator<dim, p_order, MaterialStates, MemorySpaceType>::
+    Tvmult_add(
+        dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host> &dst,
+        dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host> const
+            &src) const
 {
   _system_matrix.Tvmult_add(dst, src);
 }
 
-template <int dim, typename MemorySpaceType>
-void MechanicalOperator<dim, MemorySpaceType>::update_temperature(
-    dealii::DoFHandler<dim> const &thermal_dof_handler,
-    dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host> const
-        &temperature,
-    std::vector<bool> const &has_melted)
+template <int dim, int p_order, typename MaterialStates,
+          typename MemorySpaceType>
+void MechanicalOperator<dim, p_order, MaterialStates, MemorySpaceType>::
+    update_temperature(
+        dealii::DoFHandler<dim> const &thermal_dof_handler,
+        dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host> const
+            &temperature,
+        std::vector<bool> const &has_melted)
 {
   _thermal_dof_handler = &thermal_dof_handler;
   _temperature = temperature;
   _has_melted = has_melted;
 }
 
-template <int dim, typename MemorySpaceType>
-void MechanicalOperator<dim, MemorySpaceType>::assemble_system(
-    std::vector<std::shared_ptr<BodyForce<dim>>> const &body_forces)
+template <int dim, int p_order, typename MaterialStates,
+          typename MemorySpaceType>
+void MechanicalOperator<dim, p_order, MaterialStates, MemorySpaceType>::
+    assemble_system(
+        std::vector<std::shared_ptr<BodyForce<dim>>> const &body_forces)
 {
   // Create the sparsity pattern. Since we use a Trilinos matrix we don't need
   // the sparsity pattern to outlive the sparse matrix.
@@ -127,9 +140,9 @@ void MechanicalOperator<dim, MemorySpaceType>::assemble_system(
 
   // Loop over the locally owned cells that are not FE_Nothing and assemble the
   // sparse matrix and the right-hand-side
-  for (auto const &cell :
-       _dof_handler->active_cell_iterators() |
-           dealii::IteratorFilters::ActiveFEIndexEqualTo(0, true))
+  for (auto const &cell : _dof_handler->active_cell_iterators() |
+                              dealii::IteratorFilters::ActiveFEIndexEqualTo(
+                                  0, /* locally owned */ true))
   {
     displacement_hp_fe_values.reinit(cell);
     auto const &fe_values = displacement_hp_fe_values.get_present_fe_values();
@@ -216,12 +229,14 @@ void MechanicalOperator<dim, MemorySpaceType>::assemble_system(
       }
     }
 
+    _temperature.update_ghost_values();
+
     std::vector<dealii::types::global_dof_index> temperature_local_dof_indices(
         _thermal_dof_handler->get_fe_collection().max_dofs_per_cell());
     double const initial_temperature = _reference_temperatures.back();
-    for (auto const &cell :
-         _dof_handler->active_cell_iterators() |
-             dealii::IteratorFilters::ActiveFEIndexEqualTo(0, true))
+    for (auto const &cell : _dof_handler->active_cell_iterators() |
+                                dealii::IteratorFilters::ActiveFEIndexEqualTo(
+                                    0, /* locally owned */ true))
     {
       cell_rhs = 0.;
 
@@ -233,16 +248,10 @@ void MechanicalOperator<dim, MemorySpaceType>::assemble_system(
       // Get the appropriate reference temperature for the cell. If the cell
       // is not in the unmelted substrate, the reference temperature depends
       // on the material.
-      double reference_temperature;
-      if (_has_melted[cell_indices[cell->active_cell_index()]])
-      {
-        reference_temperature =
-            _reference_temperatures[temperature_cell->material_id()];
-      }
-      else
-      {
-        reference_temperature = initial_temperature;
-      }
+      double reference_temperature =
+          _has_melted[cell_indices[cell->active_cell_index()]]
+              ? _reference_temperatures[temperature_cell->material_id()]
+              : initial_temperature;
 
       displacement_hp_fe_values.reinit(cell);
       auto const &fe_values = displacement_hp_fe_values.get_present_fe_values();
@@ -289,9 +298,9 @@ void MechanicalOperator<dim, MemorySpaceType>::assemble_system(
   // Add gravitational body force
   if (body_forces.size())
   {
-    for (auto const &cell :
-         _dof_handler->active_cell_iterators() |
-             dealii::IteratorFilters::ActiveFEIndexEqualTo(0, true))
+    for (auto const &cell : _dof_handler->active_cell_iterators() |
+                                dealii::IteratorFilters::ActiveFEIndexEqualTo(
+                                    0, /* locally owned */ true))
     {
       cell_rhs = 0.;
 
@@ -329,7 +338,5 @@ void MechanicalOperator<dim, MemorySpaceType>::assemble_system(
 }
 } // namespace adamantine
 
-INSTANTIATE_DIM_HOST(MechanicalOperator)
-#ifdef ADAMANTINE_HAVE_CUDA
-INSTANTIATE_DIM_DEVICE(MechanicalOperator)
-#endif
+INSTANTIATE_DIM_PORDER_MATERIALSTATES_HOST(TUPLE(MechanicalOperator))
+INSTANTIATE_DIM_PORDER_MATERIALSTATES_DEVICE(TUPLE(MechanicalOperator))

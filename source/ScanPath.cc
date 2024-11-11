@@ -1,4 +1,4 @@
-/* Copyright (c) 2016 - 2023, the adamantine authors.
+/* Copyright (c) 2016 - 2024, the adamantine authors.
  *
  * This file is subject to the Modified BSD License and may not be distributed
  * without copyright and license information. Please refer to the file LICENSE
@@ -6,36 +6,63 @@
  */
 
 #include <ScanPath.hh>
+#include <types.hh>
 #include <utils.hh>
+
+#include <boost/algorithm/string.hpp>
 
 #include <fstream>
 
 namespace adamantine
 {
-ScanPath::ScanPath(std::string scan_path_file, std::string file_format)
+ScanPath::ScanPath(std::string const &scan_path_file,
+                   std::string const &file_format,
+                   boost::optional<boost::property_tree::ptree const &> const
+                       &units_optional_database)
+    : _scan_path_file(scan_path_file), _file_format(file_format)
 {
-  // Parse the scan path
-  wait_for_file(scan_path_file,
-                "Waiting for scan path file: " + scan_path_file);
-
-  if (file_format == "segment")
+  // Get the scaling factor of the different units, if provided. If the property
+  // tree is not given, we assume that all the scaling factors are equal to one.
+  if (units_optional_database)
   {
-    load_segment_scan_path(scan_path_file);
+    auto database = units_optional_database.get();
+    // PropertyTreeInput units.heat_source.scan_path
+    std::string unit = database.get("heat_source.scan_path", "meter");
+    _distance_scaling = g_unit_scaling_factor[unit];
+    // PropertyTreeInput units.heat_source.velocity
+    unit = database.get("heat_source.velocity", "meter/second");
+    _velocity_scaling = g_unit_scaling_factor[unit];
   }
-  else if (file_format == "event_series")
+
+  ASSERT_THROW((_file_format == "segment") || (_file_format == "event_series"),
+               "Error: Format of scan path file not recognized.");
+
+  wait_for_file(_scan_path_file,
+                "Waiting for scan path file: " + _scan_path_file);
+
+  read_file();
+}
+
+void ScanPath::read_file()
+{
+  wait_for_file_to_update(_scan_path_file, "Waiting for " + _scan_path_file,
+                          _last_write_time);
+
+  if (_file_format == "segment")
   {
-    load_event_series_scan_path(scan_path_file);
+    load_segment_scan_path();
   }
   else
   {
-    ASSERT_THROW(false, "Error: Format of scan path file not recognized.");
+    load_event_series_scan_path();
   }
 }
 
-void ScanPath::load_segment_scan_path(std::string scan_path_file)
+void ScanPath::load_segment_scan_path()
 {
+  _segment_list.clear();
   std::ifstream file;
-  file.open(scan_path_file);
+  file.open(_scan_path_file);
   std::string line;
   unsigned int data_index = 0;
   // Skip first line
@@ -49,6 +76,13 @@ void ScanPath::load_segment_scan_path(std::string scan_path_file)
   // segments to read, whichever comes first
   while ((data_index < n_segments) && (getline(file, line)))
   {
+    // If we reach the end of the scan path, we stop reading the file.
+    if (line.find("SCAN_PATH_END") != std::string::npos)
+    {
+      _scan_path_end = true;
+      break;
+    }
+
     std::vector<std::string> split_line;
     boost::split(split_line, line, boost::is_any_of(" "),
                  boost::token_compress_on);
@@ -70,13 +104,14 @@ void ScanPath::load_segment_scan_path(std::string scan_path_file)
     else
     {
       ASSERT_THROW(false, "Error: Mode type in scan path file line " +
-                              std::to_string(data_index + 4) + " not recognized.");
+                              std::to_string(data_index + 4) +
+                              " not recognized.");
     }
 
     // Set the segment end position
-    segment.end_point(0) = std::stod(split_line[1]);
-    segment.end_point(1) = std::stod(split_line[2]);
-    segment.end_point(2) = std::stod(split_line[3]);
+    segment.end_point(0) = std::stod(split_line[1]) * _distance_scaling;
+    segment.end_point(1) = std::stod(split_line[2]) * _distance_scaling;
+    segment.end_point(2) = std::stod(split_line[3]) * _distance_scaling;
 
     // Set the power modifier
     segment.power_modifier = std::stod(split_line[4]);
@@ -96,7 +131,7 @@ void ScanPath::load_segment_scan_path(std::string scan_path_file)
     }
     else
     {
-      double velocity = std::stod(split_line[5]);
+      double velocity = std::stod(split_line[5]) * _velocity_scaling;
       double line_length =
           segment.end_point.distance(_segment_list.back().end_point);
       segment.end_time =
@@ -108,15 +143,25 @@ void ScanPath::load_segment_scan_path(std::string scan_path_file)
   file.close();
 }
 
-void ScanPath::load_event_series_scan_path(std::string scan_path_file)
+void ScanPath::load_event_series_scan_path()
 {
+  _segment_list.clear();
   std::ifstream file;
-  file.open(scan_path_file);
+  file.open(_scan_path_file);
   std::string line;
 
   double last_power = 0.0;
   while (getline(file, line))
   {
+    if (line == "") continue;
+    
+    // If we reach the end of the scan path, we stop reading the file.
+    if (line.find("SCAN_PATH_END") != std::string::npos)
+    {
+      _scan_path_end = true;
+      break;
+    }
+
     // For an event series the first segment is a ScanPathSegment point, then
     // the rest are ScanPathSegment lines
     ScanPathSegment segment;
@@ -129,9 +174,9 @@ void ScanPath::load_event_series_scan_path(std::string scan_path_file)
     segment.end_time = std::stod(split_line[0]);
 
     // Set the segment end position
-    segment.end_point(0) = std::stod(split_line[1]);
-    segment.end_point(1) = std::stod(split_line[2]);
-    segment.end_point(2) = std::stod(split_line[3]);
+    segment.end_point(0) = std::stod(split_line[1]) * _distance_scaling;
+    segment.end_point(1) = std::stod(split_line[2]) * _distance_scaling;
+    segment.end_point(2) = std::stod(split_line[3]) * _distance_scaling;
 
     // Set the power modifier
     segment.power_modifier = last_power;
@@ -210,5 +255,7 @@ std::vector<ScanPathSegment> ScanPath::get_segment_list() const
 {
   return _segment_list;
 }
+
+bool ScanPath::is_finished() const { return _scan_path_end; }
 
 } // namespace adamantine

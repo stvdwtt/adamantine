@@ -21,12 +21,17 @@ class ScanPathTester
 public:
   std::vector<ScanPathSegment> get_segment_format_list()
   {
-    ScanPath scan_path("scan_path.txt", "segment");
+    boost::optional<boost::property_tree::ptree const &>
+        units_optional_database;
+    ScanPath scan_path("scan_path.txt", "segment", units_optional_database);
     return scan_path._segment_list;
   };
   std::vector<ScanPathSegment> get_event_series_format_list()
   {
-    ScanPath scan_path("scan_path_event_series.inp", "event_series");
+    boost::optional<boost::property_tree::ptree const &>
+        units_optional_database;
+    ScanPath scan_path("scan_path_event_series.inp", "event_series",
+                       units_optional_database);
     return scan_path._segment_list;
   };
 };
@@ -43,12 +48,12 @@ BOOST_AUTO_TEST_CASE(scan_path, *utf::tolerance(1e-12))
 
   BOOST_TEST(segment_format_list[0].end_time == 1.0e-6);
   BOOST_TEST(segment_format_list[0].end_point[0] == 0.0);
-  BOOST_TEST(segment_format_list[0].end_point[1] == 0.0);
+  BOOST_TEST(segment_format_list[0].end_point[1] == 0.1);
   BOOST_TEST(segment_format_list[0].power_modifier == 0.0);
 
   BOOST_TEST(segment_format_list[1].end_time == (1.0e-6 + 0.002 / 0.8));
   BOOST_TEST(segment_format_list[1].end_point[0] == 0.002);
-  BOOST_TEST(segment_format_list[1].end_point[1] == 0.0);
+  BOOST_TEST(segment_format_list[1].end_point[1] == 0.1);
   BOOST_TEST(segment_format_list[1].power_modifier == 1.0);
 
   // Test the segments from a ScanPathFileFormat::event_series file
@@ -75,21 +80,22 @@ BOOST_AUTO_TEST_CASE(scan_path, *utf::tolerance(1e-12))
 
 BOOST_AUTO_TEST_CASE(scan_path_location, *utf::tolerance(1e-10))
 {
-  ScanPath scan_path("scan_path.txt", "segment");
+  boost::optional<boost::property_tree::ptree const &> units_optional_database;
+  ScanPath scan_path("scan_path.txt", "segment", units_optional_database);
   double time = 1.0e-7;
   dealii::Point<3> p1 = scan_path.value(time);
 
   BOOST_TEST(p1[0] == 0.0);
-  BOOST_TEST(p1[1] == 0.0);
-  BOOST_TEST(p1[2] == 0.0);
+  BOOST_TEST(p1[1] == 0.1);
+  BOOST_TEST(p1[2] == 0.1);
 
   time = 0.001001;
 
   dealii::Point<3> p2 = scan_path.value(time);
 
   BOOST_TEST(p2[0] == 8.0e-4);
-  BOOST_TEST(p2[1] == 0.0);
-  BOOST_TEST(p2[2] == 0.0);
+  BOOST_TEST(p2[1] == 0.1);
+  BOOST_TEST(p2[2] == 0.1);
 
   time = 100.0;
   dealii::Point<3> p3 = scan_path.value(time);

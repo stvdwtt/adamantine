@@ -27,7 +27,7 @@ public:
     boost::property_tree::ptree database;
 
     // First checking the dealii default values
-    DataAssimilator da0(database);
+    DataAssimilator da0(MPI_COMM_WORLD, MPI_COMM_WORLD, 0, database);
 
     double tol = 1.0e-12;
     BOOST_TEST(da0._solver_control.tolerance() - 1.0e-10 == 0.,
@@ -39,7 +39,7 @@ public:
     database.put("solver.convergence_tolerance", 1.0e-6);
     database.put("solver.max_iterations", 25);
     database.put("solver.max_number_of_temp_vectors", 4);
-    DataAssimilator da1(database);
+    DataAssimilator da1(MPI_COMM_WORLD, MPI_COMM_WORLD, 0, database);
     BOOST_TEST(da1._solver_control.tolerance() - 1.0e-6 == 0.,
                tt::tolerance(tol));
     BOOST_TEST(da1._solver_control.max_steps() == 25u);
@@ -57,7 +57,10 @@ public:
     database.put("length_divisions", 1);
     database.put("height", 1);
     database.put("height_divisions", 1);
-    adamantine::Geometry<2> geometry(communicator, database);
+    boost::optional<boost::property_tree::ptree const &>
+        units_optional_database;
+    adamantine::Geometry<2> geometry(communicator, database,
+                                     units_optional_database);
     dealii::parallel::distributed::Triangulation<2> const &tria =
         geometry.get_triangulation();
 
@@ -81,7 +84,7 @@ public:
     expt_to_dof_mapping.second[1] = 3;
 
     boost::property_tree::ptree solver_settings_database;
-    DataAssimilator da(solver_settings_database);
+    DataAssimilator da(communicator, communicator, 0, solver_settings_database);
     da._sim_size = sim_size;
     da._expt_size = expt_size;
     da._parameter_size = 0;
@@ -183,7 +186,8 @@ public:
     expt_to_dof_mapping.second[2] = 3;
 
     boost::property_tree::ptree solver_settings_database;
-    DataAssimilator da(solver_settings_database);
+    DataAssimilator da(MPI_COMM_WORLD, MPI_COMM_WORLD, 0,
+                       solver_settings_database);
     da._sim_size = sim_size;
     da._expt_size = expt_size;
     da.update_dof_mapping<2>(expt_to_dof_mapping);
@@ -206,7 +210,10 @@ public:
     database.put("length_divisions", 2);
     database.put("height", 1);
     database.put("height_divisions", 2);
-    adamantine::Geometry<2> geometry(communicator, database);
+    boost::optional<boost::property_tree::ptree const &>
+        units_optional_database;
+    adamantine::Geometry<2> geometry(communicator, database,
+                                     units_optional_database);
     dealii::parallel::distributed::Triangulation<2> const &tria =
         geometry.get_triangulation();
 
@@ -228,7 +235,7 @@ public:
     expt_to_dof_mapping.second[2] = 3;
 
     boost::property_tree::ptree solver_settings_database;
-    DataAssimilator da(solver_settings_database);
+    DataAssimilator da(communicator, communicator, 0, solver_settings_database);
     da._sim_size = sim_size;
     da._expt_size = expt_size;
     da.update_dof_mapping<2>(expt_to_dof_mapping);
@@ -263,7 +270,10 @@ public:
     database.put("length_divisions", 2);
     database.put("height", 1);
     database.put("height_divisions", 2);
-    adamantine::Geometry<2> geometry(communicator, database);
+    boost::optional<boost::property_tree::ptree const &>
+        units_optional_database;
+    adamantine::Geometry<2> geometry(communicator, database,
+                                     units_optional_database);
     dealii::parallel::distributed::Triangulation<2> const &tria =
         geometry.get_triangulation();
 
@@ -296,7 +306,7 @@ public:
     expt_to_dof_mapping.second[2] = 3;
 
     boost::property_tree::ptree solver_settings_database;
-    DataAssimilator da(solver_settings_database);
+    DataAssimilator da(communicator, communicator, 0, solver_settings_database);
     da._sim_size = sim_size;
     da._expt_size = expt_size;
     da.update_dof_mapping<2>(expt_to_dof_mapping);
@@ -318,7 +328,10 @@ public:
     database.put("length_divisions", 2);
     database.put("height", 1);
     database.put("height_divisions", 2);
-    adamantine::Geometry<2> geometry(communicator, database);
+    boost::optional<boost::property_tree::ptree const &>
+        units_optional_database;
+    adamantine::Geometry<2> geometry(communicator, database,
+                                     units_optional_database);
     dealii::parallel::distributed::Triangulation<2> const &tria =
         geometry.get_triangulation();
 
@@ -328,7 +341,7 @@ public:
 
     // Effectively a dense matrix
     boost::property_tree::ptree solver_settings_database;
-    DataAssimilator da(solver_settings_database);
+    DataAssimilator da(communicator, communicator, 0, solver_settings_database);
     da._localization_cutoff_distance = 100.0;
     da._localization_cutoff_function = LocalizationCutoff::step_function;
     da.update_covariance_sparsity_pattern<2>(dof_handler, 0);
@@ -364,7 +377,10 @@ public:
     database.put("length_divisions", 1);
     database.put("height", 1);
     database.put("height_divisions", 1);
-    adamantine::Geometry<2> geometry(communicator, database);
+    boost::optional<boost::property_tree::ptree const &>
+        units_optional_database;
+    adamantine::Geometry<2> geometry(communicator, database,
+                                     units_optional_database);
     dealii::parallel::distributed::Triangulation<2> const &tria =
         geometry.get_triangulation();
 
@@ -389,7 +405,7 @@ public:
     solver_settings_database.put("localization_cutoff_distance", 100.0);
     solver_settings_database.put("localization_cutoff_function",
                                  "step_function");
-    DataAssimilator da(solver_settings_database);
+    DataAssimilator da(communicator, communicator, 0, solver_settings_database);
     da._sim_size = sim_vec.size();
     da._num_ensemble_members = vec_ensemble.size();
 
@@ -563,7 +579,8 @@ public:
     if (R_is_diagonal)
     {
       boost::property_tree::ptree solver_settings_database;
-      DataAssimilator da(solver_settings_database);
+      DataAssimilator da(MPI_COMM_WORLD, MPI_COMM_WORLD, 0,
+                         solver_settings_database);
 
       dealii::SparsityPattern pattern(3, 3, 1);
       pattern.add(0, 0);
@@ -596,7 +613,8 @@ public:
     else
     {
       boost::property_tree::ptree solver_settings_database;
-      DataAssimilator da(solver_settings_database);
+      DataAssimilator da(MPI_COMM_WORLD, MPI_COMM_WORLD, 0,
+                         solver_settings_database);
 
       dealii::SparsityPattern pattern(3, 3, 3);
       pattern.add(0, 0);
@@ -645,7 +663,10 @@ public:
     database.put("length_divisions", 1);
     database.put("height", 1);
     database.put("height_divisions", 1);
-    adamantine::Geometry<2> geometry(communicator, database);
+    boost::optional<boost::property_tree::ptree const &>
+        units_optional_database;
+    adamantine::Geometry<2> geometry(communicator, database,
+                                     units_optional_database);
     dealii::parallel::distributed::Triangulation<2> const &tria =
         geometry.get_triangulation();
 
@@ -669,7 +690,7 @@ public:
     expt_to_dof_mapping.second[1] = 3;
 
     boost::property_tree::ptree solver_settings_database;
-    DataAssimilator da(solver_settings_database);
+    DataAssimilator da(communicator, communicator, 0, solver_settings_database);
     da._sim_size = sim_size;
     da._parameter_size = 0;
     da._expt_size = expt_size;
@@ -726,7 +747,7 @@ public:
     sim_at_expt_pt_2_before.push_back(augmented_state_ensemble[2].block(0)[3]);
 
     // Update the simulation data
-    da.update_ensemble(communicator, augmented_state_ensemble, expt_vec, R);
+    da.update_ensemble(augmented_state_ensemble, expt_vec, R);
 
     // Save the data at the observation points after assimilation
     std::vector<double> sim_at_expt_pt_1_after(3);
@@ -762,7 +783,10 @@ public:
     database.put("length_divisions", 1);
     database.put("height", 1);
     database.put("height_divisions", 1);
-    adamantine::Geometry<2> geometry(communicator, database);
+    boost::optional<boost::property_tree::ptree const &>
+        units_optional_database;
+    adamantine::Geometry<2> geometry(communicator, database,
+                                     units_optional_database);
     dealii::parallel::distributed::Triangulation<2> const &tria =
         geometry.get_triangulation();
 
@@ -787,7 +811,7 @@ public:
     expt_to_dof_mapping.second[1] = 3;
 
     boost::property_tree::ptree solver_settings_database;
-    DataAssimilator da(solver_settings_database);
+    DataAssimilator da(communicator, communicator, 0, solver_settings_database);
     da._sim_size = sim_size;
     da._parameter_size = parameter_size;
     da._expt_size = expt_size;
@@ -855,7 +879,7 @@ public:
     sim_at_expt_pt_2_before.push_back(augmented_state_ensemble[2].block(0)[3]);
 
     // Update the simulation data
-    da.update_ensemble(communicator, augmented_state_ensemble, expt_vec, R);
+    da.update_ensemble(augmented_state_ensemble, expt_vec, R);
 
     // Save the data at the observation points after assimilation
     std::vector<double> sim_at_expt_pt_1_after(3);

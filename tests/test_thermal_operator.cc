@@ -1,9 +1,11 @@
-/* Copyright (c) 2016 - 2022, the adamantine authors.
+/* Copyright (c) 2016 - 2024, the adamantine authors.
  *
  * This file is subject to the Modified BSD License and may not be distributed
  * without copyright and license information. Please refer to the file LICENSE
  * for the text and further information on this license.
  */
+
+#include "MaterialStates.hh"
 
 #include <deal.II/lac/full_matrix.h>
 #define BOOST_TEST_MODULE ThermalOperator
@@ -50,7 +52,9 @@ BOOST_AUTO_TEST_CASE(thermal_operator, *utf::tolerance(1e-15))
   geometry_database.put("length_divisions", 4);
   geometry_database.put("height", 6);
   geometry_database.put("height_divisions", 5);
-  adamantine::Geometry<2> geometry(communicator, geometry_database);
+  boost::optional<boost::property_tree::ptree const &> units_optional_database;
+  adamantine::Geometry<2> geometry(communicator, geometry_database,
+                                   units_optional_database);
   // Create the DoFHandler
   dealii::hp::FECollection<2> fe_collection;
   fe_collection.push_back(dealii::FE_Q<2>(2));
@@ -79,26 +83,30 @@ BOOST_AUTO_TEST_CASE(thermal_operator, *utf::tolerance(1e-15))
   mat_prop_database.put("material_0.powder.thermal_conductivity_z", 10.);
   mat_prop_database.put("material_0.liquid.thermal_conductivity_x", 10.);
   mat_prop_database.put("material_0.liquid.thermal_conductivity_z", 10.);
-  adamantine::MaterialProperty<2, dealii::MemorySpace::Host> mat_properties(
-      communicator, geometry.get_triangulation(), mat_prop_database);
+  adamantine::MaterialProperty<2, 1, adamantine::SolidLiquidPowder,
+                               dealii::MemorySpace::Host>
+      mat_properties(communicator, geometry.get_triangulation(),
+                     mat_prop_database);
 
   // Create the heat sources
   boost::property_tree::ptree beam_database;
   beam_database.put("depth", 0.1);
   beam_database.put("absorption_efficiency", 0.1);
   beam_database.put("diameter", 1.0);
-  beam_database.put("max_power", 10.);
+  beam_database.put("max_power", 0.);
   beam_database.put("scan_path_file", "scan_path.txt");
   beam_database.put("scan_path_file_format", "segment");
   std::vector<std::shared_ptr<adamantine::HeatSource<2>>> heat_sources;
   heat_sources.resize(1);
-  heat_sources[0] =
-      std::make_shared<adamantine::GoldakHeatSource<2>>(beam_database);
+  heat_sources[0] = std::make_shared<adamantine::GoldakHeatSource<2>>(
+      beam_database, units_optional_database);
+  heat_sources[0]->update_time(0.);
 
   // Initialize the ThermalOperator
-  adamantine::ThermalOperator<2, 2, dealii::MemorySpace::Host> thermal_operator(
-      communicator, adamantine::BoundaryType::adiabatic, mat_properties,
-      heat_sources);
+  adamantine::ThermalOperator<2, false, 1, 2, adamantine::SolidLiquidPowder,
+                              dealii::MemorySpace::Host>
+      thermal_operator(communicator, adamantine::BoundaryType::adiabatic,
+                       mat_properties, heat_sources);
   std::vector<double> deposition_cos(
       geometry.get_triangulation().n_locally_owned_active_cells(), 1.);
   std::vector<double> deposition_sin(
@@ -152,7 +160,9 @@ BOOST_AUTO_TEST_CASE(spmv, *utf::tolerance(1e-12))
   geometry_database.put("length_divisions", 4);
   geometry_database.put("height", 6);
   geometry_database.put("height_divisions", 5);
-  adamantine::Geometry<2> geometry(communicator, geometry_database);
+  boost::optional<boost::property_tree::ptree const &> units_optional_database;
+  adamantine::Geometry<2> geometry(communicator, geometry_database,
+                                   units_optional_database);
   // Create the DoFHandler
   dealii::hp::FECollection<2> fe_collection;
   fe_collection.push_back(dealii::FE_Q<2>(2));
@@ -181,26 +191,30 @@ BOOST_AUTO_TEST_CASE(spmv, *utf::tolerance(1e-12))
   mat_prop_database.put("material_0.powder.thermal_conductivity_z", 1.);
   mat_prop_database.put("material_0.liquid.thermal_conductivity_x", 1.);
   mat_prop_database.put("material_0.liquid.thermal_conductivity_z", 1.);
-  adamantine::MaterialProperty<2, dealii::MemorySpace::Host> mat_properties(
-      communicator, geometry.get_triangulation(), mat_prop_database);
+  adamantine::MaterialProperty<2, 2, adamantine::SolidLiquidPowder,
+                               dealii::MemorySpace::Host>
+      mat_properties(communicator, geometry.get_triangulation(),
+                     mat_prop_database);
 
   // Create the heat sources
   boost::property_tree::ptree beam_database;
   beam_database.put("depth", 0.1);
   beam_database.put("absorption_efficiency", 0.1);
   beam_database.put("diameter", 1.0);
-  beam_database.put("max_power", 10.);
+  beam_database.put("max_power", 0.);
   beam_database.put("scan_path_file", "scan_path.txt");
   beam_database.put("scan_path_file_format", "segment");
   std::vector<std::shared_ptr<adamantine::HeatSource<2>>> heat_sources;
   heat_sources.resize(1);
-  heat_sources[0] =
-      std::make_shared<adamantine::GoldakHeatSource<2>>(beam_database);
+  heat_sources[0] = std::make_shared<adamantine::GoldakHeatSource<2>>(
+      beam_database, units_optional_database);
+  heat_sources[0]->update_time(0.);
 
   // Initialize the ThermalOperator
-  adamantine::ThermalOperator<2, 2, dealii::MemorySpace::Host> thermal_operator(
-      communicator, adamantine::BoundaryType::adiabatic, mat_properties,
-      heat_sources);
+  adamantine::ThermalOperator<2, false, 2, 2, adamantine::SolidLiquidPowder,
+                              dealii::MemorySpace::Host>
+      thermal_operator(communicator, adamantine::BoundaryType::adiabatic,
+                       mat_properties, heat_sources);
   std::vector<double> deposition_cos(
       geometry.get_triangulation().n_locally_owned_active_cells(), 1.);
   std::vector<double> deposition_sin(
@@ -258,7 +272,9 @@ BOOST_AUTO_TEST_CASE(spmv_anisotropic, *utf::tolerance(1e-12))
   geometry_database.put("length_divisions", 4);
   geometry_database.put("height", 6);
   geometry_database.put("height_divisions", 5);
-  adamantine::Geometry<2> geometry(communicator, geometry_database);
+  boost::optional<boost::property_tree::ptree const &> units_optional_database;
+  adamantine::Geometry<2> geometry(communicator, geometry_database,
+                                   units_optional_database);
   // Create the DoFHandler
   dealii::hp::FECollection<2> fe_collection;
   fe_collection.push_back(dealii::FE_Q<2>(2));
@@ -287,26 +303,30 @@ BOOST_AUTO_TEST_CASE(spmv_anisotropic, *utf::tolerance(1e-12))
   mat_prop_database.put("material_0.powder.thermal_conductivity_z", 0.);
   mat_prop_database.put("material_0.liquid.thermal_conductivity_x", 1.);
   mat_prop_database.put("material_0.liquid.thermal_conductivity_z", 0.);
-  adamantine::MaterialProperty<2, dealii::MemorySpace::Host> mat_properties(
-      communicator, geometry.get_triangulation(), mat_prop_database);
+  adamantine::MaterialProperty<2, 2, adamantine::SolidLiquidPowder,
+                               dealii::MemorySpace::Host>
+      mat_properties(communicator, geometry.get_triangulation(),
+                     mat_prop_database);
 
   // Create the heat sources
   boost::property_tree::ptree beam_database;
   beam_database.put("depth", 0.1);
   beam_database.put("absorption_efficiency", 0.1);
   beam_database.put("diameter", 1.0);
-  beam_database.put("max_power", 10.);
+  beam_database.put("max_power", 0.);
   beam_database.put("scan_path_file", "scan_path.txt");
   beam_database.put("scan_path_file_format", "segment");
   std::vector<std::shared_ptr<adamantine::HeatSource<2>>> heat_sources;
   heat_sources.resize(1);
-  heat_sources[0] =
-      std::make_shared<adamantine::GoldakHeatSource<2>>(beam_database);
+  heat_sources[0] = std::make_shared<adamantine::GoldakHeatSource<2>>(
+      beam_database, units_optional_database);
+  heat_sources[0]->update_time(0.);
 
   // Initialize the ThermalOperator
-  adamantine::ThermalOperator<2, 2, dealii::MemorySpace::Host> thermal_operator(
-      communicator, adamantine::BoundaryType::adiabatic, mat_properties,
-      heat_sources);
+  adamantine::ThermalOperator<2, false, 2, 2, adamantine::SolidLiquidPowder,
+                              dealii::MemorySpace::Host>
+      thermal_operator(communicator, adamantine::BoundaryType::adiabatic,
+                       mat_properties, heat_sources);
   std::vector<double> deposition_cos(
       geometry.get_triangulation().n_locally_owned_active_cells(), 1.);
   std::vector<double> deposition_sin(
@@ -398,7 +418,9 @@ BOOST_AUTO_TEST_CASE(spmv_anisotropic_angle, *utf::tolerance(1e-10))
   geometry_database.put("height_divisions", 2);
   geometry_database.put("width", 6);
   geometry_database.put("width_divisions", 2);
-  adamantine::Geometry<3> geometry(communicator, geometry_database);
+  boost::optional<boost::property_tree::ptree const &> units_optional_database;
+  adamantine::Geometry<3> geometry(communicator, geometry_database,
+                                   units_optional_database);
   // Create the DoFHandler
   dealii::hp::FECollection<3> fe_collection;
   fe_collection.push_back(dealii::FE_Q<3>(2));
@@ -433,16 +455,19 @@ BOOST_AUTO_TEST_CASE(spmv_anisotropic_angle, *utf::tolerance(1e-10))
   mat_prop_database.put("material_0.liquid.thermal_conductivity_x", th_cond_x);
   mat_prop_database.put("material_0.liquid.thermal_conductivity_y", th_cond_y);
   mat_prop_database.put("material_0.liquid.thermal_conductivity_z", th_cond_z);
-  adamantine::MaterialProperty<3, dealii::MemorySpace::Host> mat_properties(
-      communicator, geometry.get_triangulation(), mat_prop_database);
+  adamantine::MaterialProperty<3, 1, adamantine::SolidLiquidPowder,
+                               dealii::MemorySpace::Host>
+      mat_properties(communicator, geometry.get_triangulation(),
+                     mat_prop_database);
 
   // Create the heat sources
   std::vector<std::shared_ptr<adamantine::HeatSource<3>>> heat_sources;
 
   // Initialize the ThermalOperator
-  adamantine::ThermalOperator<3, 2, dealii::MemorySpace::Host> thermal_operator(
-      communicator, adamantine::BoundaryType::adiabatic, mat_properties,
-      heat_sources);
+  adamantine::ThermalOperator<3, false, 1, 2, adamantine::SolidLiquidPowder,
+                              dealii::MemorySpace::Host>
+      thermal_operator(communicator, adamantine::BoundaryType::adiabatic,
+                       mat_properties, heat_sources);
   double constexpr deposition_angle = M_PI / 6.;
   std::vector<double> deposition_cos(
       geometry.get_triangulation().n_locally_owned_active_cells(),
@@ -550,7 +575,9 @@ BOOST_AUTO_TEST_CASE(spmv_rad, *utf::tolerance(1e-12))
   geometry_database.put("length_divisions", 4);
   geometry_database.put("height", 6);
   geometry_database.put("height_divisions", 5);
-  adamantine::Geometry<2> geometry(communicator, geometry_database);
+  boost::optional<boost::property_tree::ptree const &> units_optional_database;
+  adamantine::Geometry<2> geometry(communicator, geometry_database,
+                                   units_optional_database);
   // Create the DoFHandler
   dealii::hp::FECollection<2> fe_collection;
   fe_collection.push_back(dealii::FE_Q<2>(2));
@@ -588,26 +615,30 @@ BOOST_AUTO_TEST_CASE(spmv_rad, *utf::tolerance(1e-12))
   mat_prop_database.put("material_0.liquid.convection_heat_transfer_coef", 1.);
   mat_prop_database.put("material_0.radiation_temperature_infty", 0.0);
   mat_prop_database.put("material_0.convection_temperature_infty", 0.0);
-  adamantine::MaterialProperty<2, dealii::MemorySpace::Host> mat_properties(
-      communicator, geometry.get_triangulation(), mat_prop_database);
+  adamantine::MaterialProperty<2, 1, adamantine::SolidLiquidPowder,
+                               dealii::MemorySpace::Host>
+      mat_properties(communicator, geometry.get_triangulation(),
+                     mat_prop_database);
 
   // Create the heat sources
   boost::property_tree::ptree beam_database;
   beam_database.put("depth", 0.1);
   beam_database.put("absorption_efficiency", 0.1);
   beam_database.put("diameter", 1.0);
-  beam_database.put("max_power", 10.);
+  beam_database.put("max_power", 0.);
   beam_database.put("scan_path_file", "scan_path.txt");
   beam_database.put("scan_path_file_format", "segment");
   std::vector<std::shared_ptr<adamantine::HeatSource<2>>> heat_sources;
   heat_sources.resize(1);
-  heat_sources[0] =
-      std::make_shared<adamantine::GoldakHeatSource<2>>(beam_database);
+  heat_sources[0] = std::make_shared<adamantine::GoldakHeatSource<2>>(
+      beam_database, units_optional_database);
+  heat_sources[0]->update_time(0.);
 
   // Initialize the ThermalOperator
-  adamantine::ThermalOperator<2, 2, dealii::MemorySpace::Host> thermal_operator(
-      communicator, adamantine::BoundaryType::radiative, mat_properties,
-      heat_sources);
+  adamantine::ThermalOperator<2, false, 1, 2, adamantine::SolidLiquidPowder,
+                              dealii::MemorySpace::Host>
+      thermal_operator(communicator, adamantine::BoundaryType::radiative,
+                       mat_properties, heat_sources);
   std::vector<double> deposition_cos(
       geometry.get_triangulation().n_locally_owned_active_cells(), 1.);
   std::vector<double> deposition_sin(
@@ -731,7 +762,9 @@ BOOST_AUTO_TEST_CASE(spmv_conv, *utf::tolerance(1e-12))
   geometry_database.put("length_divisions", 4);
   geometry_database.put("height", 6);
   geometry_database.put("height_divisions", 5);
-  adamantine::Geometry<2> geometry(communicator, geometry_database);
+  boost::optional<boost::property_tree::ptree const &> units_optional_database;
+  adamantine::Geometry<2> geometry(communicator, geometry_database,
+                                   units_optional_database);
   // Create the DoFHandler
   dealii::hp::FECollection<2> fe_collection;
   fe_collection.push_back(dealii::FE_Q<2>(2));
@@ -769,26 +802,30 @@ BOOST_AUTO_TEST_CASE(spmv_conv, *utf::tolerance(1e-12))
   mat_prop_database.put("material_0.liquid.convection_heat_transfer_coef", 1.);
   mat_prop_database.put("material_0.radiation_temperature_infty", 0.0);
   mat_prop_database.put("material_0.convection_temperature_infty", 0.0);
-  adamantine::MaterialProperty<2, dealii::MemorySpace::Host> mat_properties(
-      communicator, geometry.get_triangulation(), mat_prop_database);
+  adamantine::MaterialProperty<2, 1, adamantine::SolidLiquidPowder,
+                               dealii::MemorySpace::Host>
+      mat_properties(communicator, geometry.get_triangulation(),
+                     mat_prop_database);
 
   // Create the heat sources
   boost::property_tree::ptree beam_database;
   beam_database.put("depth", 0.1);
   beam_database.put("absorption_efficiency", 0.1);
   beam_database.put("diameter", 1.0);
-  beam_database.put("max_power", 10.);
+  beam_database.put("max_power", 0.);
   beam_database.put("scan_path_file", "scan_path.txt");
   beam_database.put("scan_path_file_format", "segment");
   std::vector<std::shared_ptr<adamantine::HeatSource<2>>> heat_sources;
   heat_sources.resize(1);
-  heat_sources[0] =
-      std::make_shared<adamantine::GoldakHeatSource<2>>(beam_database);
+  heat_sources[0] = std::make_shared<adamantine::GoldakHeatSource<2>>(
+      beam_database, units_optional_database);
+  heat_sources[0]->update_time(0.);
 
   // Initialize the ThermalOperator
-  adamantine::ThermalOperator<2, 2, dealii::MemorySpace::Host> thermal_operator(
-      communicator, adamantine::BoundaryType::convective, mat_properties,
-      heat_sources);
+  adamantine::ThermalOperator<2, false, 1, 2, adamantine::SolidLiquidPowder,
+                              dealii::MemorySpace::Host>
+      thermal_operator(communicator, adamantine::BoundaryType::convective,
+                       mat_properties, heat_sources);
   std::vector<double> deposition_cos(
       geometry.get_triangulation().n_locally_owned_active_cells(), 1.);
   std::vector<double> deposition_sin(

@@ -1,4 +1,4 @@
-/* Copyright (c) 2016 - 2023, the adamantine authors.
+/* Copyright (c) 2016 - 2024, the adamantine authors.
  *
  * This file is subject to the Modified BSD License and may not be distributed
  * without copyright and license information. Please refer to the file LICENSE
@@ -8,7 +8,6 @@
 #ifndef THERMAL_PHYSICS_INTERFACE_HH
 #define THERMAL_PHYSICS_INTERFACE_HH
 
-#include <MaterialProperty.hh>
 #include <types.hh>
 
 #include <deal.II/dofs/dof_handler.h>
@@ -37,6 +36,11 @@ public:
   virtual ~ThermalPhysicsInterface() = default;
 
   /**
+   * Set up and initialize the data structure.
+   */
+  virtual void setup() = 0;
+
+  /**
    * Associate the AffineConstraints<double> and the MatrixFree objects to the
    * underlying Triangulation.
    */
@@ -51,14 +55,22 @@ public:
    * Activate more elements of the mesh and interpolate the solution to the new
    * domain.
    */
-  virtual void add_material(
+  virtual void add_material_start(
       std::vector<std::vector<
           typename dealii::DoFHandler<dim>::active_cell_iterator>> const
           &elements_to_activate,
       std::vector<double> const &new_deposition_cos,
       std::vector<double> const &new_deposition_sin,
       std::vector<bool> &new_has_melted, unsigned int const activation_start,
-      unsigned int const activation_end, double const initial_temperature,
+      unsigned int const activation_end,
+      dealii::LA::distributed::Vector<double, MemorySpaceType> &solution) = 0;
+
+  /**
+   * Finalize adding material by completing the transfer of solutions after the
+   * discretization has been adapted to the activated cells.
+   */
+  virtual void add_material_end(
+      double const new_material_temperature,
       dealii::LA::distributed::Vector<double, MemorySpaceType> &solution) = 0;
 
   /**
@@ -78,18 +90,6 @@ public:
       double t, double delta_t,
       dealii::LA::distributed::Vector<double, MemorySpaceType> &solution,
       std::vector<Timer> &timers) = 0;
-
-  /**
-   * Return a guess of what should be the nex time step.
-   */
-  virtual double get_delta_t_guess() const = 0;
-
-  /**
-   * Initialize the given vector.
-   */
-  virtual void initialize_dof_vector(
-      dealii::LA::distributed::Vector<double, MemorySpaceType> &vector)
-      const = 0;
 
   /**
    * Initialize the given vector with the given value.
@@ -112,10 +112,20 @@ public:
   virtual void set_state_to_material_properties() = 0;
 
   /**
-   * Update the depostion cosine and sine from the Physics object to the
-   * operator object.
+   * Load the state of the simulation from files.
    */
-  virtual void update_material_deposition_orientation() = 0;
+  virtual void
+  load_checkpoint(std::string const &filename,
+                  dealii::LA::distributed::Vector<double, MemorySpaceType>
+                      &temperature) = 0;
+
+  /**
+   * Write the current state of the simulation on the filesystem.
+   */
+  virtual void
+  save_checkpoint(std::string const &filename,
+                  dealii::LA::distributed::Vector<double, MemorySpaceType>
+                      &temperature) = 0;
 
   /**
    * Set the deposition cosine and sine and call

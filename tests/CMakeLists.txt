@@ -11,19 +11,19 @@ list(APPEND
      test_geometry
      test_heat_source
      test_implicit_operator
-     test_integration_thermoelastic
+     test_integration_3d_device
      test_material_property
+     test_material_property_device
      test_mechanical_operator
      test_mechanical_physics
      test_newton_solver
      test_post_processor
      test_scan_path
      test_thermal_operator
+     test_thermal_operator_device
+     test_thermal_physics_device
      test_timer
      test_utils
-     test_integration_3d_amr
-     test_integration_da
-     test_integration_da_augmented
      test_validate_input_database
      )
 
@@ -32,22 +32,20 @@ list(APPEND
      MPI_UNIT_TESTS
      test_experimental_data
      test_integration_2d
+     test_integration_2d_device
      test_integration_3d
+     test_integration_3d_amr
+     test_integration_3d_amr_device
+     test_integration_da_augmented
+     test_integration_thermoelastic
      test_material_deposition
      test_thermal_physics
      test_ensemble_management
     )
 
-set(CUDA_UNIT_TESTS "")
-list(APPEND
-     CUDA_UNIT_TESTS
-     test_integration_2d_device
-     test_integration_3d_device
-     test_integration_3d_amr_device
-     test_material_property_device
-     test_thermal_operator_device
-     test_thermal_physics_device
-     )
+# test_integration_da is a special test that we need to test with more
+# processors than the others
+adamantine_ADD_BOOST_TEST(test_integration_da 1 2 3 6)
 
 foreach(TEST_NAME ${UNIT_TESTS})
   adamantine_ADD_BOOST_TEST(${TEST_NAME})
@@ -57,21 +55,18 @@ foreach(TEST_NAME ${MPI_UNIT_TESTS})
   adamantine_ADD_BOOST_TEST(${TEST_NAME} 1 2)
 endforeach()
 
-if (ADAMANTINE_ENABLE_CUDA)
-  foreach(TEST_NAME ${CUDA_UNIT_TESTS})
-    adamantine_ADD_BOOST_CUDA_TEST(${TEST_NAME})
-  endforeach()
-endif()
-
 
 adamantine_COPY_INPUT_FILE(demo_316_short.info tests/data)
 adamantine_COPY_INPUT_FILE(amr_test.info tests/data)
+adamantine_COPY_INPUT_FILE(demo_316_short_amr.info tests/data)
 adamantine_COPY_INPUT_FILE(demo_316_short_anisotropic.info tests/data)
 adamantine_COPY_INPUT_FILE(demo_316_short_scan_path.txt tests/data)
+adamantine_COPY_INPUT_FILE(demo_316_short_scan_path_amr.txt tests/data)
 adamantine_COPY_INPUT_FILE(experimental_data_0_0.csv tests/data)
 adamantine_COPY_INPUT_FILE(extruded_cube.msh tests/data)
 adamantine_COPY_INPUT_FILE(integration_2d.info tests/data)
 adamantine_COPY_INPUT_FILE(integration_2d_ensemble.info tests/data)
+adamantine_COPY_INPUT_FILE(integration_2d_units.info tests/data)
 adamantine_COPY_INPUT_FILE(integration_2d_gold.txt tests/data)
 adamantine_COPY_INPUT_FILE(integration_3d_gold.txt tests/data)
 adamantine_COPY_INPUT_FILE(integration_3d_gold_0.txt tests/data)
@@ -86,6 +81,7 @@ adamantine_COPY_INPUT_FILE(scan_path_event_series.inp tests/data)
 adamantine_COPY_INPUT_FILE(scan_path_test_thermal_physics.txt tests/data)
 adamantine_COPY_INPUT_FILE(scan_path_L.txt tests/data)
 adamantine_COPY_INPUT_FILE(scan_path_layers.txt tests/data)
+adamantine_COPY_INPUT_FILE(scan_path_units.txt tests/data)
 adamantine_COPY_INPUT_FILE(bare_plate_L_ensemble.info tests/data)
 adamantine_COPY_INPUT_FILE(bare_plate_L_da.info tests/data)
 adamantine_COPY_INPUT_FILE(bare_plate_L_scan_path.txt tests/data)
@@ -107,3 +103,6 @@ adamantine_COPY_INPUT_FILE(integration_da_add_material_expt_log.txt tests/data)
 adamantine_COPY_INPUT_FILE(integration_da_add_material_expt_pc_0_0.csv tests/data)
 adamantine_COPY_INPUT_FILE(integration_da_add_material_sp.txt tests/data)
 adamantine_COPY_INPUT_FILE(integration_da_add_material_expt_ray_0_0.csv tests/data)
+adamantine_COPY_INPUT_FILE(HourGlass_AOP.info tests/data)
+adamantine_COPY_INPUT_FILE(HourGlass_AOP.vtk tests/data)
+adamantine_COPY_INPUT_FILE(HourGlass_AOP_scan_path.txt tests/data)

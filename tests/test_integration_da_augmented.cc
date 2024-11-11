@@ -1,13 +1,16 @@
-/* Copyright (c) 2016 - 2023, the adamantine authors.
+/* Copyright (c) 2016 - 2024, the adamantine authors.
  *
  * This file is subject to the Modified BSD License and may not be distributed
  * without copyright and license information. Please refer to the file LICENSE
  * for the text and further information on this license.
  */
 
+#include "MaterialStates.hh"
 #define BOOST_TEST_MODULE Integration_Data_Assimilation_Augmented
 
 #include "../application/adamantine.hh"
+
+#include <boost/property_tree/info_parser.hpp>
 
 #include <filesystem>
 #include <fstream>
@@ -33,11 +36,15 @@ BOOST_AUTO_TEST_CASE(integration_3D_data_assimilation_augmented,
   boost::property_tree::info_parser::read_info(filename, database);
 
   // Run the simulation
-  auto result = run_ensemble<3, dealii::MemorySpace::Host>(communicator,
-                                                           database, timers);
+  auto result =
+      run_ensemble<3, 3, adamantine::SolidLiquidPowder,
+                   dealii::MemorySpace::Host>(communicator, database, timers);
 
   // Three ensemble members expected
-  BOOST_TEST(result.size() == 3);
+  unsigned int local_result_size = result.size();
+  unsigned int global_result_size =
+      dealii::Utilities::MPI::sum(local_result_size, communicator);
+  BOOST_TEST(global_result_size == 3);
 
   // Get the average absorption value for each ensemble member
   double sum = 0.0;
@@ -45,7 +52,9 @@ BOOST_AUTO_TEST_CASE(integration_3D_data_assimilation_augmented,
   {
     sum += result.at(member).block(1).local_element(0);
   }
-  double average_value = sum / result.size();
+  double partial_average_value = sum / global_result_size;
+  double average_value =
+      dealii::Utilities::MPI::sum(partial_average_value, communicator);
 
   // Based on the reference solution, the expected absorption efficiency is 0.3
   double gold_solution = 0.3;

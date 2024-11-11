@@ -1,4 +1,4 @@
-/* Copyright (c) 2023, the adamantine authors.
+/* Copyright (c) 2023 - 2024, the adamantine authors.
  *
  * This file is subject to the Modified BSD License and may not be distributed
  * without copyright and license information. Please refer to the file LICENSE
@@ -11,15 +11,19 @@
 
 namespace adamantine
 {
-template <int dim, typename MemorySpaceType>
-GravityForce<dim, MemorySpaceType>::GravityForce(
-    MaterialProperty<dim, MemorySpaceType> &material_properties)
+template <int dim, int p_order, typename MaterialStates,
+          typename MemorySpaceType>
+GravityForce<dim, p_order, MaterialStates, MemorySpaceType>::GravityForce(
+    MaterialProperty<dim, p_order, MaterialStates, MemorySpaceType>
+        &material_properties)
     : _material_properties(material_properties)
 {
 }
 
-template <int dim, typename MemorySpaceType>
-dealii::Tensor<1, dim, double> GravityForce<dim, MemorySpaceType>::eval(
+template <int dim, int p_order, typename MaterialStates,
+          typename MemorySpaceType>
+dealii::Tensor<1, dim, double>
+GravityForce<dim, p_order, MaterialStates, MemorySpaceType>::eval(
     typename dealii::Triangulation<dim>::active_cell_iterator const &cell)
 {
   // Note that the density is independent of the temperature
@@ -32,7 +36,5 @@ dealii::Tensor<1, dim, double> GravityForce<dim, MemorySpaceType>::eval(
 }
 } // namespace adamantine
 
-INSTANTIATE_DIM_HOST(GravityForce)
-#ifdef ADAMANTINE_HAVE_CUDA
-INSTANTIATE_DIM_DEVICE(GravityForce)
-#endif
+INSTANTIATE_DIM_PORDER_MATERIALSTATES_HOST(TUPLE(GravityForce))
+INSTANTIATE_DIM_PORDER_MATERIALSTATES_DEVICE(TUPLE(GravityForce))

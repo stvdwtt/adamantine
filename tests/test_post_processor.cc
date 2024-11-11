@@ -1,9 +1,11 @@
-/* Copyright (c) 2016 - 2023, the adamantine authors.
+/* Copyright (c) 2016 - 2024, the adamantine authors.
  *
  * This file is subject to the Modified BSD License and may not be distributed
  * without copyright and license information. Please refer to the file LICENSE
  * for the text and further information on this license.
  */
+
+#include "MaterialStates.hh"
 
 #include <deal.II/base/symmetric_tensor.h>
 #define BOOST_TEST_MODULE PostProcessor
@@ -36,7 +38,9 @@ BOOST_AUTO_TEST_CASE(thermal_post_processor)
   geometry_database.put("length_divisions", 4);
   geometry_database.put("height", 6);
   geometry_database.put("height_divisions", 5);
-  adamantine::Geometry<2> geometry(communicator, geometry_database);
+  boost::optional<boost::property_tree::ptree const &> units_optional_database;
+  adamantine::Geometry<2> geometry(communicator, geometry_database,
+                                   units_optional_database);
   // Create the DoFHandler
   dealii::hp::FECollection<2> fe_collection;
   fe_collection.push_back(dealii::FE_Q<2>(2));
@@ -65,8 +69,10 @@ BOOST_AUTO_TEST_CASE(thermal_post_processor)
   mat_prop_database.put("material_0.powder.thermal_conductivity_z", 10.);
   mat_prop_database.put("material_0.liquid.thermal_conductivity_x", 10.);
   mat_prop_database.put("material_0.liquid.thermal_conductivity_z", 10.);
-  adamantine::MaterialProperty<2, dealii::MemorySpace::Host> mat_properties(
-      communicator, geometry.get_triangulation(), mat_prop_database);
+  adamantine::MaterialProperty<2, 0, adamantine::SolidLiquidPowder,
+                               dealii::MemorySpace::Host>
+      mat_properties(communicator, geometry.get_triangulation(),
+                     mat_prop_database);
 
   boost::property_tree::ptree beam_database;
   beam_database.put("depth", 0.1);
@@ -77,13 +83,14 @@ BOOST_AUTO_TEST_CASE(thermal_post_processor)
   beam_database.put("scan_path_file_format", "segment");
   std::vector<std::shared_ptr<adamantine::HeatSource<2>>> heat_sources;
   heat_sources.resize(1);
-  heat_sources[0] =
-      std::make_shared<adamantine::GoldakHeatSource<2>>(beam_database);
+  heat_sources[0] = std::make_shared<adamantine::GoldakHeatSource<2>>(
+      beam_database, units_optional_database);
 
   // Initialize the ThermalOperator
-  adamantine::ThermalOperator<2, 2, dealii::MemorySpace::Host> thermal_operator(
-      communicator, adamantine::BoundaryType::adiabatic, mat_properties,
-      heat_sources);
+  adamantine::ThermalOperator<2, false, 0, 2, adamantine::SolidLiquidPowder,
+                              dealii::MemorySpace::Host>
+      thermal_operator(communicator, adamantine::BoundaryType::adiabatic,
+                       mat_properties, heat_sources);
   std::vector<double> deposition_cos(
       geometry.get_triangulation().n_locally_owned_active_cells(), 1.);
   std::vector<double> deposition_sin(
@@ -106,15 +113,15 @@ BOOST_AUTO_TEST_CASE(thermal_post_processor)
   for (unsigned int i = 0; i < src.size(); ++i)
     src[i] = 1.;
 
-  post_processor.write_thermal_output(0, 0., src, mat_properties.get_state(),
-                                      mat_properties.get_dofs_map(),
-                                      mat_properties.get_dof_handler());
-  post_processor.write_thermal_output(1, 0.1, src, mat_properties.get_state(),
-                                      mat_properties.get_dofs_map(),
-                                      mat_properties.get_dof_handler());
-  post_processor.write_thermal_output(2, 0.2, src, mat_properties.get_state(),
-                                      mat_properties.get_dofs_map(),
-                                      mat_properties.get_dof_handler());
+  post_processor.write_thermal_output<Kokkos::LayoutRight>(
+      0, 0., src, mat_properties.get_state(), mat_properties.get_dofs_map(),
+      mat_properties.get_dof_handler());
+  post_processor.write_thermal_output<Kokkos::LayoutRight>(
+      1, 0.1, src, mat_properties.get_state(), mat_properties.get_dofs_map(),
+      mat_properties.get_dof_handler());
+  post_processor.write_thermal_output<Kokkos::LayoutRight>(
+      2, 0.2, src, mat_properties.get_state(), mat_properties.get_dofs_map(),
+      mat_properties.get_dof_handler());
   post_processor.write_pvd();
 
   // Check that the files exist
@@ -150,7 +157,9 @@ BOOST_AUTO_TEST_CASE(mechanical_post_processor)
   geometry_database.put("height_divisions", 3);
   geometry_database.put("width", 6);
   geometry_database.put("width_divisions", 3);
-  adamantine::Geometry<dim> geometry(communicator, geometry_database);
+  boost::optional<boost::property_tree::ptree const &> units_optional_database;
+  adamantine::Geometry<dim> geometry(communicator, geometry_database,
+                                     units_optional_database);
   // Create the DoFHandler
   dealii::hp::FECollection<dim> fe_collection;
   fe_collection.push_back(dealii::FESystem<dim>(dealii::FE_Q<dim>(2) ^ dim));
@@ -186,12 +195,15 @@ BOOST_AUTO_TEST_CASE(mechanical_post_processor)
   mat_prop_database.put("material_0.liquid.thermal_conductivity_z", 10.);
   mat_prop_database.put("material_0.solid.lame_first_parameter", 2.);
   mat_prop_database.put("material_0.solid.lame_second_parameter", 3.);
-  adamantine::MaterialProperty<dim, dealii::MemorySpace::Host> mat_properties(
-      communicator, geometry.get_triangulation(), mat_prop_database);
+  adamantine::MaterialProperty<dim, 0, adamantine::SolidLiquidPowder,
+                               dealii::MemorySpace::Host>
+      mat_properties(communicator, geometry.get_triangulation(),
+                     mat_prop_database);
 
   std::vector<double> empty_vector;
 
-  adamantine::MechanicalOperator<dim, dealii::MemorySpace::Host>
+  adamantine::MechanicalOperator<dim, 0, adamantine::SolidLiquidPowder,
+                                 dealii::MemorySpace::Host>
       mechanical_operator(communicator, mat_properties, empty_vector);
   mechanical_operator.reinit(dof_handler, affine_constraints, q_collection);
 
@@ -224,13 +236,13 @@ BOOST_AUTO_TEST_CASE(mechanical_post_processor)
     }
   }
 
-  post_processor.write_mechanical_output(
+  post_processor.template write_mechanical_output<Kokkos::LayoutRight>(
       0, 0., displacement, stress, mat_properties.get_state(),
       mat_properties.get_dofs_map(), mat_properties.get_dof_handler());
-  post_processor.write_mechanical_output(
+  post_processor.template write_mechanical_output<Kokkos::LayoutRight>(
       1, 0.1, displacement, stress, mat_properties.get_state(),
       mat_properties.get_dofs_map(), mat_properties.get_dof_handler());
-  post_processor.write_mechanical_output(
+  post_processor.template write_mechanical_output<Kokkos::LayoutRight>(
       2, 0.2, displacement, stress, mat_properties.get_state(),
       mat_properties.get_dofs_map(), mat_properties.get_dof_handler());
   post_processor.write_pvd();

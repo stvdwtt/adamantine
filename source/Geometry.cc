@@ -1,4 +1,4 @@
-/* Copyright (c) 2016 - 2021, the adamantine authors.
+/* Copyright (c) 2016 - 2024, the adamantine authors.
  *
  * This file is subject to the Modified BSD License and may not be distributed
  * without copyright and license information. Please refer to the file LICENSE
@@ -9,6 +9,7 @@
 #define GEOMETRY_TEMPLATES_HH
 
 #include <Geometry.hh>
+#include <MaterialStates.hh>
 #include <instantiation.hh>
 #include <types.hh>
 #include <utils.hh>
@@ -16,12 +17,15 @@
 #include <deal.II/grid/filtered_iterator.h>
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_in.h>
+#include <deal.II/grid/grid_tools.h>
 
 namespace adamantine
 {
 template <int dim>
-Geometry<dim>::Geometry(MPI_Comm const &communicator,
-                        boost::property_tree::ptree const &database)
+Geometry<dim>::Geometry(
+    MPI_Comm const &communicator, boost::property_tree::ptree const &database,
+    boost::optional<boost::property_tree::ptree const &> const
+        &units_optional_database)
     : _triangulation(communicator)
 {
   // PropertyTreeInput geometry.import_mesh
@@ -88,6 +92,26 @@ Geometry<dim>::Geometry(MPI_Comm const &communicator,
 
     grid_in.read(mesh_file, grid_in_format);
     _triangulation.copy_triangulation(serial_triangulation);
+
+    // Apply user-specified scaling to the mesh
+    // PropertyTreeInput units.mesh
+    std::string const mesh_unit =
+        units_optional_database
+            ? units_optional_database.get().get("mesh", "meter")
+            : "meter";
+    double mesh_scaling = g_unit_scaling_factor[mesh_unit];
+    dealii::GridTools::scale(mesh_scaling, _triangulation);
+
+    // Set the mesh material id to 0 if specified in the input
+    // PropertyTreeInput geometry.reset_material_id
+    auto reset_material_id = database.get("reset_material_id", false);
+    if (reset_material_id)
+    {
+      for (auto cell : _triangulation.active_cell_iterators())
+      {
+        cell->set_material_id(0);
+      }
+    }
   }
   else
   {
@@ -104,11 +128,21 @@ Geometry<dim>::Geometry(MPI_Comm const &communicator,
     dealii::Point<dim> p2;
     // PropertyTreeInput geometry.length
     p2[axis<dim>::x] = database.get<double>("length");
+    // PropertyTreeInput geometry.length_origin
+    p1[axis<dim>::x] = database.get("length_origin", 0.0);
     // PropertyTreeInput geometry.height
     p2[axis<dim>::z] = database.get<double>("height");
-    // PropertyTreeInput geometry.width
+    // PropertyTreeInput geometry.height_origin
+    p1[axis<dim>::z] = database.get("height_origin", 0.0);
     if (dim == 3)
+    {
+      // PropertyTreeInput geometry.width
       p2[axis<dim>::y] = database.get<double>("width");
+      // PropertyTreeInput geometry.width_origin
+      p1[axis<dim>::y] = database.get("width_origin", 0.0);
+    }
+
+    p2 = p2 + p1;
 
     // For now we assume that the geometry is very simple.
     dealii::GridGenerator::subdivided_hyper_rectangle(
@@ -143,11 +177,12 @@ void Geometry<dim>::assign_material_state(
     {
       if (cell->center()[axis<dim>::z] < solid_height)
       {
-        cell->set_user_index(static_cast<int>(MaterialState::solid));
+        cell->set_user_index(static_cast<int>(SolidLiquidPowder::State::solid));
       }
       else
       {
-        cell->set_user_index(static_cast<int>(MaterialState::powder));
+        cell->set_user_index(
+            static_cast<int>(SolidLiquidPowder::State::powder));
       }
     }
   }
@@ -156,7 +191,7 @@ void Geometry<dim>::assign_material_state(
     // Everything is made of solid material
     for (auto cell : _triangulation.active_cell_iterators())
     {
-      cell->set_user_index(static_cast<int>(MaterialState::solid));
+      cell->set_user_index(static_cast<int>(SolidLiquidPowder::State::solid));
     }
   }
 }

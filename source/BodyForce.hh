@@ -1,4 +1,4 @@
-/* Copyright (c) 2023, the adamantine authors.
+/* Copyright (c) 2023 - 2024, the adamantine authors.
  *
  * This file is subject to the Modified BSD License and may not be distributed
  * without copyright and license information. Please refer to the file LICENSE
@@ -29,17 +29,20 @@ struct BodyForce
 };
 
 // Forward declaration
-template <int dim, typename MemorySpaceType>
+template <int dim, int p_order, typename MaterialStates,
+          typename MemorySpaceType>
 class MaterialProperty;
 
 /**
  * Gravity's body force.
  */
-template <int dim, typename MemorySpaceType>
-class GravityForce : public BodyForce<dim>
+template <int dim, int p_order, typename MaterialStates,
+          typename MemorySpaceType>
+class GravityForce final : public BodyForce<dim>
 {
 public:
-  GravityForce(MaterialProperty<dim, MemorySpaceType> &material_properties);
+  GravityForce(MaterialProperty<dim, p_order, MaterialStates, MemorySpaceType>
+                   &material_properties);
 
   dealii::Tensor<1, dim, double>
   eval(typename dealii::Triangulation<dim>::active_cell_iterator const &cell)
@@ -50,7 +53,8 @@ private:
    * Gravity in \f$m/s^2\f$
    */
   static double constexpr g = 9.80665;
-  MaterialProperty<dim, MemorySpaceType> &_material_properties;
+  MaterialProperty<dim, p_order, MaterialStates, MemorySpaceType>
+      &_material_properties;
 };
 } // namespace adamantine
 

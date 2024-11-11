@@ -1,4 +1,4 @@
-/* Copyright (c) 2016 - 2023, the adamantine authors.
+/* Copyright (c) 2016 - 2024, the adamantine authors.
  *
  * This file is subject to the Modified BSD License and may not be distributed
  * without copyright and license information. Please refer to the file LICENSE
@@ -8,13 +8,11 @@
 #ifndef ADAMANTINE_HH
 #define ADAMANTINE_HH
 
-#include "types.hh"
 #include <DataAssimilator.hh>
 #include <ExperimentalData.hh>
 #include <Geometry.hh>
 #include <MaterialProperty.hh>
 #include <MechanicalPhysics.hh>
-#include <MemoryBlock.hh>
 #include <PointCloud.hh>
 #include <PostProcessor.hh>
 #include <RayTracing.hh>
@@ -24,6 +22,7 @@
 #include <ensemble_management.hh>
 #include <experimental_data_utils.hh>
 #include <material_deposition.hh>
+#include <types.hh>
 #include <utils.hh>
 
 #include <deal.II/base/index_set.h>
@@ -38,11 +37,15 @@
 #include <deal.II/lac/vector_operation.h>
 #include <deal.II/numerics/error_estimator.h>
 
-#include <boost/program_options.hpp>
-#include <boost/property_tree/info_parser.hpp>
+#include <boost/algorithm/string.hpp>
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
 #include <boost/property_tree/ptree.hpp>
 
+#include <fstream>
+#include <limits>
 #include <memory>
+#include <string>
 #include <type_traits>
 #include <unordered_map>
 
@@ -53,10 +56,11 @@
 #include <cmath>
 #include <iostream>
 
-template <int dim, typename MemorySpaceType,
-          std::enable_if_t<
-              std::is_same<MemorySpaceType, dealii::MemorySpace::Host>::value,
-              int> = 0>
+template <
+    int dim, int p_order, typename MaterialStates, typename MemorySpaceType,
+    std::enable_if_t<
+        std::is_same<MemorySpaceType, dealii::MemorySpace::Host>::value, int> =
+        0>
 void output_pvtu(
     adamantine::PostProcessor<dim> &post_processor, unsigned int n_time_step,
     double time,
@@ -65,12 +69,13 @@ void output_pvtu(
         &thermal_physics,
     dealii::LinearAlgebra::distributed::Vector<double, MemorySpaceType>
         &temperature,
-    std::unique_ptr<adamantine::MechanicalPhysics<dim, MemorySpaceType>> const
+    std::unique_ptr<adamantine::MechanicalPhysics<dim, p_order, MaterialStates,
+                                                  MemorySpaceType>> const
         &mechanical_physics,
     dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host>
         &displacement,
-    adamantine::MaterialProperty<dim, MemorySpaceType> const
-        &material_properties,
+    adamantine::MaterialProperty<dim, p_order, MaterialStates,
+                                 MemorySpaceType> const &material_properties,
     std::vector<adamantine::Timer> &timers)
 {
 #ifdef ADAMANTINE_WITH_CALIPER
@@ -83,15 +88,17 @@ void output_pvtu(
     if (mechanical_physics)
     {
       mechanical_physics->get_affine_constraints().distribute(displacement);
-      post_processor.write_output(n_time_step, time, temperature, displacement,
-                                  mechanical_physics->get_stress_tensor(),
-                                  material_properties.get_state(),
-                                  material_properties.get_dofs_map(),
-                                  material_properties.get_dof_handler());
+      post_processor.template write_output<typename Kokkos::View<
+          double **, typename MemorySpaceType::kokkos_space>::array_layout>(
+          n_time_step, time, temperature, displacement,
+          mechanical_physics->get_stress_tensor(),
+          material_properties.get_state(), material_properties.get_dofs_map(),
+          material_properties.get_dof_handler());
     }
     else
     {
-      post_processor.write_thermal_output(
+      post_processor.template write_thermal_output<typename Kokkos::View<
+          double **, typename MemorySpaceType::kokkos_space>::array_layout>(
           n_time_step, time, temperature, material_properties.get_state(),
           material_properties.get_dofs_map(),
           material_properties.get_dof_handler());
@@ -100,7 +107,8 @@ void output_pvtu(
   else
   {
     mechanical_physics->get_affine_constraints().distribute(displacement);
-    post_processor.write_mechanical_output(
+    post_processor.template write_mechanical_output<typename Kokkos::View<
+        double **, typename MemorySpaceType::kokkos_space>::array_layout>(
         n_time_step, time, displacement,
         mechanical_physics->get_stress_tensor(),
         material_properties.get_state(), material_properties.get_dofs_map(),
@@ -109,11 +117,11 @@ void output_pvtu(
   timers[adamantine::output].stop();
 }
 
-#ifdef ADAMANTINE_HAVE_CUDA
-template <int dim, typename MemorySpaceType,
-          std::enable_if_t<
-              std::is_same<MemorySpaceType, dealii::MemorySpace::CUDA>::value,
-              int> = 0>
+template <
+    int dim, int p_order, typename MaterialStates, typename MemorySpaceType,
+    std::enable_if_t<
+        std::is_same<MemorySpaceType, dealii::MemorySpace::Default>::value,
+        int> = 0>
 void output_pvtu(
     adamantine::PostProcessor<dim> &post_processor, unsigned int n_time_step,
     double time,
@@ -122,12 +130,13 @@ void output_pvtu(
         &thermal_physics,
     dealii::LinearAlgebra::distributed::Vector<double, MemorySpaceType>
         &temperature,
-    std::unique_ptr<adamantine::MechanicalPhysics<dim, MemorySpaceType>> const
+    std::unique_ptr<adamantine::MechanicalPhysics<dim, p_order, MaterialStates,
+                                                  MemorySpaceType>> const
         &mechanical_physics,
     dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host>
         &displacement,
-    adamantine::MaterialProperty<dim, MemorySpaceType> const
-        &material_properties,
+    adamantine::MaterialProperty<dim, p_order, MaterialStates,
+                                 MemorySpaceType> const &material_properties,
     std::vector<adamantine::Timer> &timers)
 {
 #ifdef ADAMANTINE_WITH_CALIPER
@@ -135,11 +144,8 @@ void output_pvtu(
 #endif
   timers[adamantine::output].start();
   auto state = material_properties.get_state();
-  adamantine::MemoryBlock<double, dealii::MemorySpace::Host> state_host(
-      state.extent(0), state.extent(1));
-  adamantine::MemoryBlockView<double, dealii::MemorySpace::Host>
-      state_host_view(state_host);
-  adamantine::deep_copy(state_host_view, state);
+  auto state_host = Kokkos::create_mirror_view_and_copy(
+      dealii::MemorySpace::Host::kokkos_space{}, state);
   if (thermal_physics)
   {
     dealii::LinearAlgebra::distributed::Vector<double,
@@ -150,16 +156,18 @@ void output_pvtu(
     if (mechanical_physics)
     {
       mechanical_physics->get_affine_constraints().distribute(displacement);
-      post_processor.write_output(
+      post_processor.template write_output<typename Kokkos::View<
+          double **, typename MemorySpaceType::kokkos_space>::array_layout>(
           n_time_step, time, temperature_host, displacement,
-          mechanical_physics->get_stress_tensor(), state_host_view,
+          mechanical_physics->get_stress_tensor(), state_host,
           material_properties.get_dofs_map(),
           material_properties.get_dof_handler());
     }
     else
     {
-      post_processor.write_thermal_output(
-          n_time_step, time, temperature_host, state_host_view,
+      post_processor.template write_thermal_output<typename Kokkos::View<
+          double **, typename MemorySpaceType::kokkos_space>::array_layout>(
+          n_time_step, time, temperature_host, state_host,
           material_properties.get_dofs_map(),
           material_properties.get_dof_handler());
     }
@@ -167,62 +175,15 @@ void output_pvtu(
   else
   {
     mechanical_physics->get_affine_constraints().distribute(displacement);
-    post_processor.write_mechanical_output(
+    post_processor.template write_mechanical_output<typename Kokkos::View<
+        double **, typename MemorySpaceType::kokkos_space>::array_layout>(
         n_time_step, time, displacement,
-        mechanical_physics->get_stress_tensor(), state_host_view,
+        mechanical_physics->get_stress_tensor(), state_host,
         material_properties.get_dofs_map(),
         material_properties.get_dof_handler());
   }
   timers[adamantine::output].stop();
 }
-#endif
-
-template <int dim, typename MemorySpaceType,
-          std::enable_if_t<
-              std::is_same<MemorySpaceType, dealii::MemorySpace::Host>::value,
-              int> = 0>
-dealii::Vector<float> estimate_error(
-    dealii::parallel::distributed::Triangulation<dim> const &triangulation,
-    dealii::DoFHandler<dim> const &dof_handler, int fe_degree,
-    dealii::LA::distributed::Vector<double, MemorySpaceType> const &solution)
-{
-  dealii::Vector<float> estimated_error_per_cell(
-      triangulation.n_active_cells());
-  dealii::KellyErrorEstimator<dim>::estimate(
-      dof_handler, dealii::QGauss<dim - 1>(fe_degree + 1),
-      std::map<dealii::types::boundary_id,
-               const dealii::Function<dim, double> *>(),
-      solution, estimated_error_per_cell, dealii::ComponentMask(), nullptr, 0,
-      triangulation.locally_owned_subdomain());
-
-  return estimated_error_per_cell;
-}
-
-#ifdef ADAMANTINE_HAVE_CUDA
-template <int dim, typename MemorySpaceType,
-          std::enable_if_t<
-              std::is_same<MemorySpaceType, dealii::MemorySpace::CUDA>::value,
-              int> = 0>
-dealii::Vector<float> estimate_error(
-    dealii::parallel::distributed::Triangulation<dim> const &triangulation,
-    dealii::DoFHandler<dim> const &dof_handler, int fe_degree,
-    dealii::LA::distributed::Vector<double, MemorySpaceType> const &solution)
-{
-  dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host>
-      solution_host(solution.get_partitioner());
-  solution_host.import(solution, dealii::VectorOperation::insert);
-  dealii::Vector<float> estimated_error_per_cell(
-      triangulation.n_active_cells());
-  dealii::KellyErrorEstimator<dim>::estimate(
-      dof_handler, dealii::QGauss<dim - 1>(fe_degree + 1),
-      std::map<dealii::types::boundary_id,
-               const dealii::Function<dim, double> *>(),
-      solution_host, estimated_error_per_cell, dealii::ComponentMask(), nullptr,
-      0, triangulation.locally_owned_subdomain());
-
-  return estimated_error_per_cell;
-}
-#endif
 
 // inlining this function so we can have in the header
 inline void initialize_timers(MPI_Comm const &communicator,
@@ -252,119 +213,107 @@ inline void initialize_timers(MPI_Comm const &communicator,
   timers.push_back(adamantine::Timer(communicator, "Output"));
 }
 
-template <int dim, int fe_degree, typename MemorySpaceType,
-          typename QuadratureType>
+template <int dim, int p_order, int fe_degree, typename MaterialStates,
+          typename MemorySpaceType, typename QuadratureType>
 std::unique_ptr<adamantine::ThermalPhysicsInterface<dim, MemorySpaceType>>
-initialize(
-    MPI_Comm const &communicator, boost::property_tree::ptree const &database,
-    adamantine::Geometry<dim> &geometry,
-    adamantine::MaterialProperty<dim, MemorySpaceType> &material_properties)
+initialize(MPI_Comm const &communicator,
+           boost::property_tree::ptree const &database,
+           adamantine::Geometry<dim> &geometry,
+           adamantine::MaterialProperty<dim, p_order, MaterialStates,
+                                        MemorySpaceType> &material_properties)
 {
-  return std::make_unique<adamantine::ThermalPhysics<
-      dim, fe_degree, MemorySpaceType, QuadratureType>>(
+  return std::make_unique<
+      adamantine::ThermalPhysics<dim, p_order, fe_degree, MaterialStates,
+                                 MemorySpaceType, QuadratureType>>(
       communicator, database, geometry, material_properties);
 }
 
-template <int dim, int fe_degree, typename MemorySpaceType>
+template <int dim, int p_order, int fe_degree, typename MaterialStates,
+          typename MemorySpaceType>
 std::unique_ptr<adamantine::ThermalPhysicsInterface<dim, MemorySpaceType>>
 initialize_quadrature(
     std::string const &quadrature_type, MPI_Comm const &communicator,
     boost::property_tree::ptree const &database,
     adamantine::Geometry<dim> &geometry,
-    adamantine::MaterialProperty<dim, MemorySpaceType> &material_properties)
+    adamantine::MaterialProperty<dim, p_order, MaterialStates, MemorySpaceType>
+        &material_properties)
 {
   if (quadrature_type.compare("gauss") == 0)
-    return initialize<dim, fe_degree, MemorySpaceType, dealii::QGauss<1>>(
-        communicator, database, geometry, material_properties);
+    return initialize<dim, p_order, fe_degree, MaterialStates, MemorySpaceType,
+                      dealii::QGauss<1>>(communicator, database, geometry,
+                                         material_properties);
   else
   {
     adamantine::ASSERT_THROW(quadrature_type.compare("lobatto") == 0,
                              "quadrature should be Gauss or Lobatto.");
-    return initialize<dim, fe_degree, MemorySpaceType,
+    return initialize<dim, p_order, fe_degree, MaterialStates, MemorySpaceType,
                       dealii::QGaussLobatto<1>>(communicator, database,
                                                 geometry, material_properties);
   }
 }
 
-template <int dim, typename MemorySpaceType>
+template <int dim, int p_order, typename MaterialStates,
+          typename MemorySpaceType>
 std::unique_ptr<adamantine::ThermalPhysicsInterface<dim, MemorySpaceType>>
 initialize_thermal_physics(
     unsigned int fe_degree, std::string const &quadrature_type,
     MPI_Comm const &communicator, boost::property_tree::ptree const &database,
     adamantine::Geometry<dim> &geometry,
-    adamantine::MaterialProperty<dim, MemorySpaceType> &material_properties)
+    adamantine::MaterialProperty<dim, p_order, MaterialStates, MemorySpaceType>
+        &material_properties)
 {
   switch (fe_degree)
   {
   case 1:
   {
-    return initialize_quadrature<dim, 1, MemorySpaceType>(
+    return initialize_quadrature<dim, p_order, 1, MaterialStates,
+                                 MemorySpaceType>(
         quadrature_type, communicator, database, geometry, material_properties);
   }
   case 2:
   {
-    return initialize_quadrature<dim, 2, MemorySpaceType>(
+    return initialize_quadrature<dim, p_order, 2, MaterialStates,
+                                 MemorySpaceType>(
         quadrature_type, communicator, database, geometry, material_properties);
   }
   case 3:
   {
-    return initialize_quadrature<dim, 3, MemorySpaceType>(
+    return initialize_quadrature<dim, p_order, 3, MaterialStates,
+                                 MemorySpaceType>(
         quadrature_type, communicator, database, geometry, material_properties);
   }
   case 4:
   {
-    return initialize_quadrature<dim, 4, MemorySpaceType>(
-        quadrature_type, communicator, database, geometry, material_properties);
-  }
-  case 5:
-  {
-    return initialize_quadrature<dim, 5, MemorySpaceType>(
-        quadrature_type, communicator, database, geometry, material_properties);
-  }
-  case 6:
-  {
-    return initialize_quadrature<dim, 6, MemorySpaceType>(
-        quadrature_type, communicator, database, geometry, material_properties);
-  }
-  case 7:
-  {
-    return initialize_quadrature<dim, 7, MemorySpaceType>(
-        quadrature_type, communicator, database, geometry, material_properties);
-  }
-  case 8:
-  {
-    return initialize_quadrature<dim, 8, MemorySpaceType>(
-        quadrature_type, communicator, database, geometry, material_properties);
-  }
-  case 9:
-  {
-    return initialize_quadrature<dim, 9, MemorySpaceType>(
+    return initialize_quadrature<dim, p_order, 4, MaterialStates,
+                                 MemorySpaceType>(
         quadrature_type, communicator, database, geometry, material_properties);
   }
   default:
   {
-    adamantine::ASSERT_THROW(fe_degree == 10,
-                             "fe_degree should be between 1 and 10.");
-    return initialize_quadrature<dim, 10, MemorySpaceType>(
+    adamantine::ASSERT_THROW(fe_degree == 5,
+                             "fe_degree should be between 1 and 5.");
+    return initialize_quadrature<dim, p_order, 5, MaterialStates,
+                                 MemorySpaceType>(
         quadrature_type, communicator, database, geometry, material_properties);
   }
   }
 }
 
-template <int dim, typename MemorySpaceType>
+template <int dim, int p_order, typename MaterialStates,
+          typename MemorySpaceType>
 void refine_and_transfer(
     std::unique_ptr<adamantine::ThermalPhysicsInterface<dim, MemorySpaceType>>
         &thermal_physics,
-    adamantine::MaterialProperty<dim, MemorySpaceType> &material_properties,
+    std::unique_ptr<adamantine::MechanicalPhysics<
+        dim, p_order, MaterialStates, MemorySpaceType>> &mechanical_physics,
+    adamantine::MaterialProperty<dim, p_order, MaterialStates, MemorySpaceType>
+        &material_properties,
     dealii::DoFHandler<dim> &dof_handler,
     dealii::LA::distributed::Vector<double, MemorySpaceType> &solution)
 {
 #ifdef ADAMANTINE_WITH_CALIPER
   CALI_CXX_MARK_FUNCTION;
 #endif
-
-  // TODO transfer mechanical data is present, need to be aware that the data
-  // does not exist on some cells because it's liquid
 
   dealii::parallel::distributed::Triangulation<dim> &triangulation =
       dynamic_cast<dealii::parallel::distributed::Triangulation<dim> &>(
@@ -384,23 +333,13 @@ void refine_and_transfer(
   // Transfer material state
   unsigned int const direction_data_size = 2;
   unsigned int const phase_history_data_size = 1;
-  unsigned int constexpr n_material_states = adamantine::g_n_material_states;
+  unsigned int constexpr n_material_states = MaterialStates::n_material_states;
   std::vector<std::vector<double>> data_to_transfer;
   std::vector<double> dummy_cell_data(n_material_states + direction_data_size +
                                           phase_history_data_size,
                                       std::numeric_limits<double>::infinity());
-  adamantine::MemoryBlockView<double, MemorySpaceType> material_state_view =
-      material_properties.get_state();
-  adamantine::MemoryBlock<double, dealii::MemorySpace::Host>
-      material_state_host(material_state_view.extent(0),
-                          material_state_view.extent(1));
-  typename decltype(material_state_view)::memory_space memspace;
-  adamantine::deep_copy(material_state_host.data(), dealii::MemorySpace::Host{},
-                        material_state_view.data(), memspace,
-                        material_state_view.size());
-
-  adamantine::MemoryBlockView<double, dealii::MemorySpace::Host>
-      state_host_view(material_state_host);
+  auto state_host = Kokkos::create_mirror_view_and_copy(
+      Kokkos::HostSpace{}, material_properties.get_state());
   unsigned int cell_id = 0;
   unsigned int activated_cell_id = 0;
   for (auto const &cell : dof_handler.active_cell_iterators())
@@ -410,7 +349,7 @@ void refine_and_transfer(
       std::vector<double> cell_data(n_material_states + direction_data_size +
                                     phase_history_data_size);
       for (unsigned int i = 0; i < n_material_states; ++i)
-        cell_data[i] = state_host_view(i, cell_id);
+        cell_data[i] = state_host(i, cell_id);
       if (cell->active_fe_index() == 0)
       {
         cell_data[n_material_states] =
@@ -474,6 +413,11 @@ void refine_and_transfer(
       cell_data_trans(triangulation);
   cell_data_trans.prepare_for_coarsening_and_refinement(data_to_transfer);
 
+  if (mechanical_physics)
+  {
+    mechanical_physics->prepare_transfer_mpi();
+  }
+
 #ifdef ADAMANTINE_WITH_CALIPER
   CALI_MARK_BEGIN("refine triangulation");
 #endif
@@ -485,7 +429,7 @@ void refine_and_transfer(
 
   // Update the AffineConstraints and resize the solution
   thermal_physics->setup_dofs();
-  thermal_physics->initialize_dof_vector(solution);
+  thermal_physics->initialize_dof_vector(0., solution);
 
   // Update MaterialProperty DoFHandler and resize the state vectors
   material_properties.reinit_dofs();
@@ -508,10 +452,8 @@ void refine_and_transfer(
       std::vector<double>(n_material_states + direction_data_size +
                           phase_history_data_size));
   cell_data_trans.unpack(transferred_data);
-  material_state_view = material_properties.get_state();
-  material_state_host.reinit(material_state_view.extent(0),
-                             material_state_view.extent(1));
-  state_host_view.reinit(material_state_host);
+  auto state = material_properties.get_state();
+  state_host = Kokkos::create_mirror_view(state);
   unsigned int total_cell_id = 0;
   cell_id = 0;
   std::vector<double> transferred_cos;
@@ -523,7 +465,7 @@ void refine_and_transfer(
     {
       for (unsigned int i = 0; i < n_material_states; ++i)
       {
-        state_host_view(i, cell_id) = transferred_data[total_cell_id][i];
+        state_host(i, cell_id) = transferred_data[total_cell_id][i];
       }
       if (cell->active_fe_index() == 0)
       {
@@ -552,9 +494,7 @@ void refine_and_transfer(
   thermal_physics->set_has_melted_vector(has_melted);
 
   // Copy the data back to material_property
-  adamantine::deep_copy(material_state_view.data(), memspace,
-                        material_state_host.data(), dealii::MemorySpace::Host{},
-                        material_state_view.size());
+  Kokkos::deep_copy(state, state_host);
 
   // Update the material states in the ThermalOperator
   thermal_physics->get_state_from_material_properties();
@@ -569,13 +509,18 @@ void refine_and_transfer(
       double material_ratio = 0.;
       for (unsigned int i = 0; i < n_material_states; ++i)
       {
-        material_ratio += state_host_view(i, cell_id);
+        material_ratio += state_host(i, cell_id);
       }
       ASSERT(std::abs(material_ratio - 1.) < 1e-14, "Material is lost.");
       ++cell_id;
     }
   }
 #endif
+
+  if (mechanical_physics)
+  {
+    mechanical_physics->complete_transfer_mpi();
+  }
 }
 
 template <int dim>
@@ -629,11 +574,15 @@ compute_cells_to_refine(
   return cells_to_refine;
 }
 
-template <int dim, int fe_degree, typename MemorySpaceType>
+template <int dim, int p_order, int fe_degree, typename MaterialStates,
+          typename MemorySpaceType>
 void refine_mesh(
     std::unique_ptr<adamantine::ThermalPhysicsInterface<dim, MemorySpaceType>>
         &thermal_physics,
-    adamantine::MaterialProperty<dim, MemorySpaceType> &material_properties,
+    std::unique_ptr<adamantine::MechanicalPhysics<
+        dim, p_order, MaterialStates, MemorySpaceType>> &mechanical_physics,
+    adamantine::MaterialProperty<dim, p_order, MaterialStates, MemorySpaceType>
+        &material_properties,
     dealii::LA::distributed::Vector<double, MemorySpaceType> &solution,
     std::vector<std::shared_ptr<adamantine::HeatSource<dim>>> &heat_sources,
     double const time, double const next_refinement_time,
@@ -644,72 +593,35 @@ void refine_mesh(
   CALI_CXX_MARK_FUNCTION;
 #endif
   dealii::DoFHandler<dim> &dof_handler = thermal_physics->get_dof_handler();
-  // Use the Kelly error estimator to refine the mesh. This is done so that the
-  // part of the domain that were heated stay refined.
-  // PropertyTreeInput refinement.n_heat_refinements
-  unsigned int const n_kelly_refinements =
-      refinement_database.get("n_heat_refinements", 2);
-  double coarsening_fraction = 0.3;
-  double refining_fraction = 0.6;
-  // PropertyTreeInput refinement.heat_cell_ratio
-  double cells_fraction = refinement_database.get("heat_cell_ratio", 1.);
   dealii::parallel::distributed::Triangulation<dim> &triangulation =
       dynamic_cast<dealii::parallel::distributed::Triangulation<dim> &>(
           const_cast<dealii::Triangulation<dim> &>(
               dof_handler.get_triangulation()));
-  // Number of times the mesh on the beam paths will be refined and maximum
-  // number of time a cell can be refined.
-  // PropertyTreeInput refinement.n_beam_refinements
-  unsigned int const n_beam_refinements =
-      refinement_database.get("n_beam_refinements", 2);
-  // PropertyTreeInput refinement.max_level
-  int max_level = refinement_database.get<int>("max_level");
+
+  // Refine the mesh along the trajectory of the sources.
+  double current_source_height =
+      dynamic_cast<
+          adamantine::ThermalPhysics<dim, p_order, fe_degree, MaterialStates,
+                                     MemorySpaceType, dealii::QGauss<1>> *>(
+          thermal_physics.get())
+          ? dynamic_cast<adamantine::ThermalPhysics<
+                dim, p_order, fe_degree, MaterialStates, MemorySpaceType,
+                dealii::QGauss<1>> *>(thermal_physics.get())
+                ->get_current_source_height()
+          : dynamic_cast<adamantine::ThermalPhysics<
+                dim, p_order, fe_degree, MaterialStates, MemorySpaceType,
+                dealii::QGaussLobatto<1>> *>(thermal_physics.get())
+                ->get_current_source_height();
+
+  // PropertyTreeInput refinement.n_refinements
+  unsigned int const n_refinements =
+      refinement_database.get("n_refinements", 2);
 
   // PropertyTreeInput refinement.beam_cutoff
   const double refinement_beam_cutoff =
       refinement_database.get<double>("beam_cutoff", 1.0e-15);
 
-  for (unsigned int i = 0; i < n_kelly_refinements; ++i)
-  {
-    // Estimate the error. For simplicity, always use dealii::QGauss
-    dealii::Vector<float> estimated_error_per_cell =
-        estimate_error(triangulation, dof_handler, fe_degree, solution);
-
-    // Flag the cells for refinement.
-    unsigned int new_n_cells = static_cast<unsigned int>(
-        cells_fraction *
-        static_cast<double>(triangulation.n_global_active_cells()));
-    dealii::GridRefinement::refine_and_coarsen_fixed_fraction(
-        triangulation, estimated_error_per_cell, refining_fraction,
-        coarsening_fraction, new_n_cells);
-
-    // Don't refine cells that are already as much refined as it is allowed.
-    for (auto cell :
-         dealii::filter_iterators(triangulation.active_cell_iterators(),
-                                  dealii::IteratorFilters::LocallyOwnedCell()))
-      if (cell->level() >= max_level)
-        cell->clear_refine_flag();
-
-    // Execute the refinement and transfer the solution onto the new mesh.
-    refine_and_transfer(thermal_physics, material_properties, dof_handler,
-                        solution);
-  }
-
-  // Refine the mesh along the trajectory of the sources.
-  double current_source_height =
-      dynamic_cast<adamantine::ThermalPhysics<dim, fe_degree, MemorySpaceType,
-                                              dealii::QGauss<1>> *>(
-          thermal_physics.get())
-          ? dynamic_cast<adamantine::ThermalPhysics<
-                dim, fe_degree, MemorySpaceType, dealii::QGauss<1>> *>(
-                thermal_physics.get())
-                ->get_current_source_height()
-          : dynamic_cast<adamantine::ThermalPhysics<
-                dim, fe_degree, MemorySpaceType, dealii::QGaussLobatto<1>> *>(
-                thermal_physics.get())
-                ->get_current_source_height();
-
-  for (unsigned int i = 0; i < n_beam_refinements; ++i)
+  for (unsigned int i = 0; i < n_refinements; ++i)
   {
     // Compute the cells to be refined.
     std::vector<typename dealii::parallel::distributed::Triangulation<
@@ -739,24 +651,29 @@ void refine_mesh(
     {
       if (coarsen_after_beam)
         cell->clear_coarsen_flag();
-      if (cell->level() < max_level)
+
+      if (cell->level() < static_cast<int>(n_refinements))
         cell->set_refine_flag();
     }
 
     // Execute the refinement and transfer the solution onto the new mesh.
-    refine_and_transfer(thermal_physics, material_properties, dof_handler,
-                        solution);
+    refine_and_transfer(thermal_physics, mechanical_physics,
+                        material_properties, dof_handler, solution);
   }
 
   // Recompute the inverse of the mass matrix
   thermal_physics->compute_inverse_mass_matrix();
 }
 
-template <int dim, typename MemorySpaceType>
+template <int dim, int p_order, typename MaterialStates,
+          typename MemorySpaceType>
 void refine_mesh(
     std::unique_ptr<adamantine::ThermalPhysicsInterface<dim, MemorySpaceType>>
         &thermal_physics,
-    adamantine::MaterialProperty<dim, MemorySpaceType> &material_properties,
+    std::unique_ptr<adamantine::MechanicalPhysics<
+        dim, p_order, MaterialStates, MemorySpaceType>> &mechanical_physics,
+    adamantine::MaterialProperty<dim, p_order, MaterialStates, MemorySpaceType>
+        &material_properties,
     dealii::LA::distributed::Vector<double, MemorySpaceType> &solution,
     std::vector<std::shared_ptr<adamantine::HeatSource<dim>>> &heat_sources,
     double const time, double const next_refinement_time,
@@ -770,82 +687,53 @@ void refine_mesh(
   {
   case 1:
   {
-    refine_mesh<dim, 1>(thermal_physics, material_properties, solution,
-                        heat_sources, time, next_refinement_time,
-                        time_steps_refinement, refinement_database);
+    refine_mesh<dim, p_order, 1, MaterialStates>(
+        thermal_physics, mechanical_physics, material_properties, solution,
+        heat_sources, time, next_refinement_time, time_steps_refinement,
+        refinement_database);
     break;
   }
   case 2:
   {
-    refine_mesh<dim, 2>(thermal_physics, material_properties, solution,
-                        heat_sources, time, next_refinement_time,
-                        time_steps_refinement, refinement_database);
+    refine_mesh<dim, p_order, 2, MaterialStates>(
+        thermal_physics, mechanical_physics, material_properties, solution,
+        heat_sources, time, next_refinement_time, time_steps_refinement,
+        refinement_database);
     break;
   }
   case 3:
   {
-    refine_mesh<dim, 3>(thermal_physics, material_properties, solution,
-                        heat_sources, time, next_refinement_time,
-                        time_steps_refinement, refinement_database);
+    refine_mesh<dim, p_order, 3, MaterialStates>(
+        thermal_physics, mechanical_physics, material_properties, solution,
+        heat_sources, time, next_refinement_time, time_steps_refinement,
+        refinement_database);
     break;
   }
   case 4:
   {
-    refine_mesh<dim, 4>(thermal_physics, material_properties, solution,
-                        heat_sources, time, next_refinement_time,
-                        time_steps_refinement, refinement_database);
+    refine_mesh<dim, p_order, 4, MaterialStates>(
+        thermal_physics, mechanical_physics, material_properties, solution,
+        heat_sources, time, next_refinement_time, time_steps_refinement,
+        refinement_database);
     break;
   }
   case 5:
   {
-    refine_mesh<dim, 5>(thermal_physics, material_properties, solution,
-                        heat_sources, time, next_refinement_time,
-                        time_steps_refinement, refinement_database);
-    break;
-  }
-  case 6:
-  {
-    refine_mesh<dim, 6>(thermal_physics, material_properties, solution,
-                        heat_sources, time, next_refinement_time,
-                        time_steps_refinement, refinement_database);
-    break;
-  }
-  case 7:
-  {
-    refine_mesh<dim, 7>(thermal_physics, material_properties, solution,
-                        heat_sources, time, next_refinement_time,
-                        time_steps_refinement, refinement_database);
-    break;
-  }
-  case 8:
-  {
-    refine_mesh<dim, 8>(thermal_physics, material_properties, solution,
-                        heat_sources, time, next_refinement_time,
-                        time_steps_refinement, refinement_database);
-    break;
-  }
-  case 9:
-  {
-    refine_mesh<dim, 9>(thermal_physics, material_properties, solution,
-                        heat_sources, time, next_refinement_time,
-                        time_steps_refinement, refinement_database);
-    break;
-  }
-  case 10:
-  {
-    refine_mesh<dim, 10>(thermal_physics, material_properties, solution,
-                         heat_sources, time, next_refinement_time,
-                         time_steps_refinement, refinement_database);
+    refine_mesh<dim, p_order, 5, MaterialStates>(
+        thermal_physics, mechanical_physics, material_properties, solution,
+        heat_sources, time, next_refinement_time, time_steps_refinement,
+        refinement_database);
     break;
   }
   default:
   {
-    adamantine::ASSERT_THROW(false, "fe_degree should be between 1 and 10.");
+    adamantine::ASSERT_THROW(false, "fe_degree should be between 1 and 5.");
   }
   }
 }
 
-template <int dim, typename MemorySpaceType>
+template <int dim, int p_order, typename MaterialStates,
+          typename MemorySpaceType>
 std::pair<dealii::LinearAlgebra::distributed::Vector<double,
                                                      dealii::MemorySpace::Host>,
           dealii::LinearAlgebra::distributed::Vector<double,
@@ -856,17 +744,22 @@ run(MPI_Comm const &communicator, boost::property_tree::ptree const &database,
 #ifdef ADAMANTINE_WITH_CALIPER
   CALI_CXX_MARK_FUNCTION;
 #endif
+  // Get optional units property tree
+  boost::optional<boost::property_tree::ptree const &> units_optional_database =
+      database.get_child_optional("units");
 
   // Create the Geometry
   boost::property_tree::ptree geometry_database =
       database.get_child("geometry");
-  adamantine::Geometry<dim> geometry(communicator, geometry_database);
+  adamantine::Geometry<dim> geometry(communicator, geometry_database,
+                                     units_optional_database);
 
   // Create the MaterialProperty
   boost::property_tree::ptree material_database =
       database.get_child("materials");
-  adamantine::MaterialProperty<dim, MemorySpaceType> material_properties(
-      communicator, geometry.get_triangulation(), material_database);
+  adamantine::MaterialProperty<dim, p_order, MaterialStates, MemorySpaceType>
+      material_properties(communicator, geometry.get_triangulation(),
+                          material_database);
 
   // Extract the physics property tree
   boost::property_tree::ptree physics_database = database.get_child("physics");
@@ -927,17 +820,18 @@ run(MPI_Comm const &communicator, boost::property_tree::ptree const &database,
   material_reference_temps.push_back(initial_temperature);
 
   // Create MechanicalPhysics
-  std::unique_ptr<adamantine::MechanicalPhysics<dim, MemorySpaceType>>
+  std::unique_ptr<adamantine::MechanicalPhysics<dim, p_order, MaterialStates,
+                                                MemorySpaceType>>
       mechanical_physics;
   if (use_mechanical_physics)
   {
     // PropertyTreeInput discretization.mechanical.fe_degree
     unsigned int const fe_degree =
         discretization_database.get<unsigned int>("mechanical.fe_degree");
-    mechanical_physics =
-        std::make_unique<adamantine::MechanicalPhysics<dim, MemorySpaceType>>(
-            communicator, fe_degree, geometry, material_properties,
-            material_reference_temps);
+    mechanical_physics = std::make_unique<adamantine::MechanicalPhysics<
+        dim, p_order, MaterialStates, MemorySpaceType>>(
+        communicator, fe_degree, geometry, material_properties,
+        material_reference_temps);
     post_processor_database.put("mechanical_output", true);
   }
 
@@ -961,20 +855,66 @@ run(MPI_Comm const &communicator, boost::property_tree::ptree const &database,
                        : mechanical_physics->get_dof_handler());
   }
 
+  // Get the checkpoint and restart subtrees
+  boost::optional<boost::property_tree::ptree const &>
+      checkpoint_optional_database = database.get_child_optional("checkpoint");
+  boost::optional<boost::property_tree::ptree const &>
+      restart_optional_database = database.get_child_optional("restart");
+
+  unsigned int time_steps_checkpoint = std::numeric_limits<unsigned int>::max();
+  std::string checkpoint_filename;
+  bool checkpoint_overwrite = true;
+  if (checkpoint_optional_database)
+  {
+    auto checkpoint_database = checkpoint_optional_database.get();
+    // PropertyTreeInput checkpoint.time_steps_between_checkpoint
+    time_steps_checkpoint =
+        checkpoint_database.get<unsigned int>("time_steps_between_checkpoint");
+    // PropertyTreeInput checkpoint.filename_prefix
+    checkpoint_filename =
+        checkpoint_database.get<std::string>("filename_prefix");
+    // PropertyTreeInput checkpoint.overwrite_files
+    checkpoint_overwrite = checkpoint_database.get<bool>("overwrite_files");
+  }
+
+  bool restart = false;
+  std::string restart_filename;
+  if (restart_optional_database)
+  {
+    restart = true;
+    auto restart_database = restart_optional_database.get();
+    // PropertyTreeInput restart.filename_prefix
+    restart_filename = restart_database.get<std::string>("filename_prefix");
+  }
+
   dealii::LA::distributed::Vector<double, MemorySpaceType> temperature;
   dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host>
       displacement;
   if (use_thermal_physics)
   {
-    thermal_physics->setup_dofs();
-    thermal_physics->update_material_deposition_orientation();
-    thermal_physics->compute_inverse_mass_matrix();
-    thermal_physics->initialize_dof_vector(initial_temperature, temperature);
-    thermal_physics->get_state_from_material_properties();
+    if (restart == false)
+    {
+      thermal_physics->setup();
+      thermal_physics->initialize_dof_vector(initial_temperature, temperature);
+    }
+    else
+    {
+#ifdef ADAMANTINE_WITH_CALIPER
+      CALI_MARK_BEGIN("restart from file");
+#endif
+      thermal_physics->load_checkpoint(restart_filename, temperature);
+#ifdef ADAMANTINE_WITH_CALIPER
+      CALI_MARK_END("restart from file");
+#endif
+    }
   }
 
   if (use_mechanical_physics)
   {
+    // We currently do not support restarting the mechanical simulation.
+    adamantine::ASSERT_THROW(
+        restart == false,
+        "Mechanical simulation cannot be restarted from a file");
     if (use_thermal_physics)
     {
       // Thermo-mechanical simulation
@@ -997,6 +937,19 @@ run(MPI_Comm const &communicator, boost::property_tree::ptree const &database,
   unsigned int n_time_step = 0;
   double time = 0.;
   double activation_time_end = -1.;
+  unsigned int const rank =
+      dealii::Utilities::MPI::this_mpi_process(communicator);
+  if (restart == true)
+  {
+    if (rank == 0)
+    {
+      std::cout << "Restarting from file" << std::endl;
+    }
+    std::ifstream file{restart_filename + "_time.txt"};
+    boost::archive::text_iarchive ia{file};
+    ia >> time;
+    ia >> n_time_step;
+  }
   // PropertyTreeInput geometry.deposition_time
   double const activation_time =
       geometry_database.get<double>("deposition_time", 0.);
@@ -1016,8 +969,13 @@ run(MPI_Comm const &communicator, boost::property_tree::ptree const &database,
       database.get_child("time_stepping");
   // PropertyTreeInput time_stepping.time_step
   double time_step = time_stepping_database.get<double>("time_step");
+  // PropertyTreeInput time_stepping.scan_path_for_duration
+  bool const scan_path_for_duration =
+      time_stepping_database.get("scan_path_for_duration", false);
   // PropertyTreeInput time_stepping.duration
-  double const duration = time_stepping_database.get<double>("duration");
+  double const duration = scan_path_for_duration
+                              ? std::numeric_limits<double>::max()
+                              : time_stepping_database.get<double>("duration");
 
   // Extract the refinement database
   boost::property_tree::ptree refinement_database =
@@ -1028,8 +986,6 @@ run(MPI_Comm const &communicator, boost::property_tree::ptree const &database,
   // PropertyTreeInput post_processor.time_steps_between_output
   unsigned int const time_steps_output =
       post_processor_database.get("time_steps_between_output", 1);
-
-  double next_refinement_time = time;
   // PropertyTreeInput materials.new_material_temperature
   double const new_material_temperature =
       database.get("materials.new_material_temperature", 300.);
@@ -1044,24 +1000,24 @@ run(MPI_Comm const &communicator, boost::property_tree::ptree const &database,
 #endif
     if ((time + time_step) > duration)
       time_step = duration - time;
-    unsigned int rank = dealii::Utilities::MPI::this_mpi_process(communicator);
 
-    // Refine the mesh after time_steps_refinement time steps or when time
-    // is greater or equal than the next predicted time for refinement. This
-    // is necessary when using an embedded method.
-    if ((((n_time_step % time_steps_refinement) == 0) ||
-         (time >= next_refinement_time)) &&
+    // Refine the mesh the first time we get in the loop and after
+    // time_steps_refinement time steps.
+    if (((n_time_step == 1) || ((n_time_step % time_steps_refinement) == 0)) &&
         use_thermal_physics)
     {
-      next_refinement_time = time + time_steps_refinement * time_step;
       timers[adamantine::refine].start();
-      refine_mesh(thermal_physics, material_properties, temperature,
-                  heat_sources, time, next_refinement_time,
+      double next_refinement_time = time + time_steps_refinement * time_step;
+      refine_mesh(thermal_physics, mechanical_physics, material_properties,
+                  temperature, heat_sources, time, next_refinement_time,
                   time_steps_refinement, refinement_database);
       timers[adamantine::refine].stop();
       if ((rank == 0) && (verbose_output == true))
-        std::cout << "n_dofs: " << thermal_physics->get_dof_handler().n_dofs()
+      {
+        std::cout << "n_time_step: " << n_time_step << " time: " << time
+                  << " n_dofs: " << thermal_physics->get_dof_handler().n_dofs()
                   << std::endl;
+      }
     }
 
     // Add material if necessary.
@@ -1071,7 +1027,53 @@ run(MPI_Comm const &communicator, boost::property_tree::ptree const &database,
     timers[adamantine::add_material_activate].start();
     if (time > activation_time_end)
     {
-      double const eps = time_step / 1e12;
+      // If we use scan_path_for_duration, we may need to read the scan path
+      // file once again.
+      if (scan_path_for_duration)
+      {
+        // Check if we have reached the end of current scan path.
+        bool need_updated_scan_path = false;
+        for (auto &source : heat_sources)
+        {
+          if (time > source->get_scan_path().get_segment_list().back().end_time)
+          {
+            need_updated_scan_path = true;
+            break;
+          }
+        }
+
+        if (need_updated_scan_path)
+        {
+          // Check if we have reached the end of the file. If not, read the
+          // updated scan path file
+          bool scan_path_end = true;
+          for (auto &source : heat_sources)
+          {
+            if (!source->get_scan_path().is_finished())
+            {
+              scan_path_end = false;
+              // This functions waits for the scan path file to be updated
+              // before reading the file.
+              source->get_scan_path().read_file();
+            }
+          }
+
+          // If we have reached the end of scan path file for all the heat
+          // sources, we just exit.
+          if (scan_path_end)
+          {
+            break;
+          }
+
+          std::tie(material_deposition_boxes, deposition_times, deposition_cos,
+                   deposition_sin) =
+              adamantine::create_material_deposition_boxes<dim>(
+                  geometry_database, heat_sources);
+        }
+      }
+
+      double const eps = time_step / 1e10;
+
       auto activation_start =
           std::lower_bound(deposition_times.begin(), deposition_times.end(),
                            time - eps) -
@@ -1094,25 +1096,48 @@ run(MPI_Comm const &communicator, boost::property_tree::ptree const &database,
           timers[adamantine::add_material_search].start();
           auto elements_to_activate = adamantine::get_elements_to_activate(
               thermal_physics->get_dof_handler(), material_deposition_boxes);
-
           timers[adamantine::add_material_search].stop();
 
           // For now assume that all deposited material has never been melted
           // (may or may not be reasonable)
           std::vector<bool> has_melted(deposition_cos.size(), false);
 
-          thermal_physics->add_material(elements_to_activate, deposition_cos,
-                                        deposition_sin, has_melted,
-                                        activation_start, activation_end,
-                                        new_material_temperature, temperature);
+          thermal_physics->add_material_start(
+              elements_to_activate, deposition_cos, deposition_sin, has_melted,
+              activation_start, activation_end, temperature);
+
+          if (use_mechanical_physics)
+          {
+            mechanical_physics->prepare_transfer_mpi();
+          }
+
+#ifdef ADAMANTINE_WITH_CALIPER
+          CALI_MARK_BEGIN("refine triangulation");
+#endif
+          dealii::parallel::distributed::Triangulation<dim> &triangulation =
+              dynamic_cast<dealii::parallel::distributed::Triangulation<dim> &>(
+                  const_cast<dealii::Triangulation<dim> &>(
+                      thermal_physics->get_dof_handler().get_triangulation()));
+          triangulation.execute_coarsening_and_refinement();
+#ifdef ADAMANTINE_WITH_CALIPER
+          CALI_MARK_END("refine triangulation");
+#endif
+
+          thermal_physics->add_material_end(new_material_temperature,
+                                            temperature);
+
+          if (use_mechanical_physics)
+          {
+            mechanical_physics->complete_transfer_mpi();
+          }
         }
       }
 
       if ((rank == 0) && (verbose_output == true) &&
           (activation_end - activation_start > 0) && use_thermal_physics)
       {
-        std::cout << "n_dofs: " << thermal_physics->get_dof_handler().n_dofs()
-                  << std::endl;
+        std::cout << "n_dofs after cell activation: "
+                  << thermal_physics->get_dof_handler().n_dofs() << std::endl;
       }
     }
     timers[adamantine::add_material_activate].stop();
@@ -1136,7 +1161,6 @@ run(MPI_Comm const &communicator, boost::property_tree::ptree const &database,
       time = thermal_physics->evolve_one_time_step(time, time_step, temperature,
                                                    timers);
     }
-
     // Solve the (thermo-)mechanical problem
     if (use_mechanical_physics)
     {
@@ -1165,14 +1189,27 @@ run(MPI_Comm const &communicator, boost::property_tree::ptree const &database,
 
     timers[adamantine::evol_time].stop();
 
-    // Get the new time step
-    if (use_thermal_physics)
+    if (n_time_step % time_steps_checkpoint == 0)
     {
-      time_step = thermal_physics->get_delta_t_guess();
-    }
-    else
-    {
-      time_step += time_step;
+#ifdef ADAMANTINE_WITH_CALIPER
+      CALI_MARK_BEGIN("save checkpoint");
+#endif
+      if (rank == 0)
+      {
+        std::cout << "Checkpoint reached" << std::endl;
+      }
+      std::string filename_prefix =
+          checkpoint_overwrite
+              ? checkpoint_filename
+              : checkpoint_filename + '_' + std::to_string(n_time_step);
+      thermal_physics->save_checkpoint(filename_prefix, temperature);
+      std::ofstream file{filename_prefix + "_time.txt"};
+      boost::archive::text_oarchive oa{file};
+      oa << time;
+      oa << n_time_step;
+#ifdef ADAMANTINE_WITH_CALIPER
+      CALI_MARK_END("save checkpoint");
+#endif
     }
 
     // Output progress on screen
@@ -1184,7 +1221,7 @@ run(MPI_Comm const &communicator, boost::property_tree::ptree const &database,
       if (int_part > progress)
       {
         std::cout << int_part * 10 << '%' << " completed" << std::endl;
-        ++progress;
+        progress = static_cast<unsigned int>(int_part);
       }
     }
 
@@ -1201,6 +1238,7 @@ run(MPI_Comm const &communicator, boost::property_tree::ptree const &database,
     }
     ++n_time_step;
   }
+
 #ifdef ADAMANTINE_WITH_CALIPER
   CALI_CXX_MARK_LOOP_END(main_loop_id);
 #endif
@@ -1238,17 +1276,69 @@ run(MPI_Comm const &communicator, boost::property_tree::ptree const &database,
   }
 }
 
-template <int dim, typename MemorySpaceType>
+void split_global_communicator(MPI_Comm global_communicator,
+                               unsigned int global_ensemble_size,
+                               MPI_Comm &local_communicator,
+                               unsigned int &local_ensemble_size,
+                               unsigned int &first_local_member, int &my_color)
+{
+  unsigned int const global_rank =
+      dealii::Utilities::MPI::this_mpi_process(global_communicator);
+  unsigned int const global_n_procs =
+      dealii::Utilities::MPI::n_mpi_processes(global_communicator);
+
+  double const avg_n_procs_per_member =
+      static_cast<double>(global_n_procs) /
+      static_cast<double>(global_ensemble_size);
+  if (avg_n_procs_per_member > 1)
+  {
+    local_ensemble_size = 1;
+    // We need all the members to use the same partitioning otherwise the dofs
+    // may be number differently which is problematic for the data assimulation.
+    adamantine::ASSERT_THROW(
+        avg_n_procs_per_member == std::floor(avg_n_procs_per_member),
+        "Number of MPI ranks should be less than the number of ensemble "
+        "members or a multiple of this number.");
+    // Assign color
+    my_color =
+        global_rank / static_cast<int>(std::floor(avg_n_procs_per_member));
+
+    first_local_member = my_color;
+  }
+  else
+  {
+    my_color = global_rank;
+    // Compute the local ensemble size
+    unsigned int const members_per_proc = global_ensemble_size / global_n_procs;
+    unsigned int const leftover_members =
+        global_ensemble_size - global_n_procs * members_per_proc;
+    // We assign all the leftover members to processor 0. We could do a
+    // better job distributing the leftover
+    local_ensemble_size = members_per_proc;
+    if (global_rank == 0)
+    {
+      local_ensemble_size += leftover_members;
+      first_local_member = 0;
+    }
+    else
+    {
+      first_local_member = global_rank * local_ensemble_size + leftover_members;
+    }
+  }
+
+  MPI_Comm_split(global_communicator, my_color, 0, &local_communicator);
+}
+
+template <int dim, int p_order, typename MaterialStates,
+          typename MemorySpaceType>
 std::vector<dealii::LA::distributed::BlockVector<double>>
-run_ensemble(MPI_Comm const &communicator,
+run_ensemble(MPI_Comm const &global_communicator,
              boost::property_tree::ptree const &database,
              std::vector<adamantine::Timer> &timers)
 {
 #ifdef ADAMANTINE_WITH_CALIPER
   CALI_CXX_MARK_FUNCTION;
 #endif
-
-  unsigned int rank = dealii::Utilities::MPI::this_mpi_process(communicator);
 
   // ------ Extract child property trees -----
   // Mandatory subtrees
@@ -1268,6 +1358,8 @@ run_ensemble(MPI_Comm const &communicator,
       database.get_child("materials");
 
   // Optional subtrees
+  boost::optional<boost::property_tree::ptree const &> units_optional_database =
+      database.get_child_optional("units");
   boost::optional<const boost::property_tree::ptree &>
       experiment_optional_database = database.get_child_optional("experiment");
   boost::optional<const boost::property_tree::ptree &>
@@ -1315,44 +1407,57 @@ run_ensemble(MPI_Comm const &communicator,
   // PropertyTreeInput materials.material_0.solid.convection_heat_transfer_coef
   double const material_0_solid_conv_coeff_mean = database.get<double>("materials.material_0.solid.convection_heat_transfer_coef");
 
+  // ------ Split MPI communicator -----
+  // PropertyTreeInput ensemble.ensemble_size
+  unsigned int const global_ensemble_size =
+      ensemble_database.get("ensemble_size", 5);
+  // Distribute the processors among the ensemble members
+  MPI_Comm local_communicator;
+  unsigned int local_ensemble_size = std::numeric_limits<unsigned int>::max();
+  unsigned int first_local_member = std::numeric_limits<unsigned int>::max();
+  int my_color = -1;
+  split_global_communicator(global_communicator, global_ensemble_size,
+                            local_communicator, local_ensemble_size,
+                            first_local_member, my_color);
+
   // ------ Set up the ensemble members -----
   // There might be a more efficient way to share some of these objects
   // between ensemble members. For now, we'll do the simpler approach of
-  // duplicating everything. PropertyTreeInput ensemble.ensemble_size
-  const unsigned int ensemble_size = ensemble_database.get("ensemble_size", 5);
+  // duplicating everything.
 
   // PropertyTreeInput ensemble.initial_temperature_stddev
   const double initial_temperature_stddev =
       ensemble_database.get("initial_temperature_stddev", 0.0);
 
   std::vector<double> initial_temperature =
-      adamantine::fill_and_sync_random_vector(
-          ensemble_size, initial_temperature_mean, initial_temperature_stddev);
+      adamantine::get_normal_random_vector(
+          local_ensemble_size, first_local_member, initial_temperature_mean,
+          initial_temperature_stddev);
 
   // PropertyTreeInput ensemble.new_material_temperature_stddev
   const double new_material_temperature_stddev =
       ensemble_database.get("new_material_temperature_stddev", 0.0);
 
   std::vector<double> new_material_temperature =
-      adamantine::fill_and_sync_random_vector(ensemble_size,
-                                              new_material_temperature_mean,
-                                              new_material_temperature_stddev);
+      adamantine::get_normal_random_vector(
+          local_ensemble_size, first_local_member,
+          new_material_temperature_mean, new_material_temperature_stddev);
 
   // PropertyTreeInput ensemble.beam_0_max_power_stddev
   const double beam_0_max_power_stddev =
       ensemble_database.get("beam_0_max_power_stddev", 0.0);
 
-  std::vector<double> beam_0_max_power =
-      adamantine::fill_and_sync_random_vector(
-          ensemble_size, beam_0_max_power_mean, beam_0_max_power_stddev);
+  std::vector<double> beam_0_max_power = adamantine::get_normal_random_vector(
+      local_ensemble_size, first_local_member, beam_0_max_power_mean,
+      beam_0_max_power_stddev);
 
   // PropertyTreeInput ensemble.beam_0_absorption_stddev
   const double beam_0_absorption_stddev =
       ensemble_database.get("beam_0_absorption_stddev", 0.0);
 
-  std::vector<double> beam_0_absorption =
-      adamantine::fill_and_sync_random_vector(
-          ensemble_size, beam_0_absorption_mean, beam_0_absorption_stddev);
+  std::vector<double> beam_0_absorption = adamantine::get_normal_random_vector(
+      local_ensemble_size, first_local_member, beam_0_absorption_mean,
+      beam_0_absorption_stddev);
 
   // PropertyTreeInput ensemble.material_0_solid_conv_coeff_stddev
   const double material_0_solid_conv_coeff_stddev =
@@ -1363,20 +1468,20 @@ run_ensemble(MPI_Comm const &communicator,
           ensemble_size, material_0_solid_conv_coeff_mean, material_0_solid_conv_coeff_stddev);
 
   // Create a new property tree database for each ensemble member
-  std::vector<boost::property_tree::ptree> database_ensemble(ensemble_size,
-                                                             database);
+  std::vector<boost::property_tree::ptree> database_ensemble(
+      local_ensemble_size, database);
 
   std::vector<std::unique_ptr<
       adamantine::ThermalPhysicsInterface<dim, MemorySpaceType>>>
-      thermal_physics_ensemble(ensemble_size);
+      thermal_physics_ensemble(local_ensemble_size);
 
   std::vector<std::vector<std::shared_ptr<adamantine::HeatSource<dim>>>>
-      heat_sources_ensemble(ensemble_size);
+      heat_sources_ensemble(local_ensemble_size);
 
   std::vector<std::unique_ptr<adamantine::Geometry<dim>>> geometry_ensemble;
 
-  std::vector<
-      std::unique_ptr<adamantine::MaterialProperty<dim, MemorySpaceType>>>
+  std::vector<std::unique_ptr<adamantine::MaterialProperty<
+      dim, p_order, MaterialStates, MemorySpaceType>>>
       material_properties_ensemble;
 
   std::vector<std::unique_ptr<adamantine::PostProcessor<dim>>>
@@ -1384,7 +1489,7 @@ run_ensemble(MPI_Comm const &communicator,
 
   // Create the vector of augmented state vectors
   std::vector<dealii::LA::distributed::BlockVector<double>>
-      solution_augmented_ensemble(ensemble_size);
+      solution_augmented_ensemble(local_ensemble_size);
 
   // Give names to the blocks in the augmented state vector
   int constexpr base_state = 0;
@@ -1428,9 +1533,44 @@ run_ensemble(MPI_Comm const &communicator,
       }
     }
   }
-  adamantine::DataAssimilator data_assimilator(data_assimilation_database);
+  adamantine::DataAssimilator data_assimilator(global_communicator,
+                                               local_communicator, my_color,
+                                               data_assimilation_database);
 
-  for (unsigned int member = 0; member < ensemble_size; ++member)
+  // Get the checkpoint and restart subtrees
+  boost::optional<boost::property_tree::ptree const &>
+      checkpoint_optional_database = database.get_child_optional("checkpoint");
+  boost::optional<boost::property_tree::ptree const &>
+      restart_optional_database = database.get_child_optional("restart");
+
+  unsigned int const global_rank =
+      dealii::Utilities::MPI::this_mpi_process(global_communicator);
+  unsigned int time_steps_checkpoint = std::numeric_limits<unsigned int>::max();
+  std::string checkpoint_filename;
+  bool checkpoint_overwrite = true;
+  if (checkpoint_optional_database)
+  {
+    auto checkpoint_database = checkpoint_optional_database.get();
+    // PropertyTreeInput checkpoint.time_steps_between_checkpoint
+    time_steps_checkpoint =
+        checkpoint_database.get<unsigned int>("time_steps_between_checkpoint");
+    // PropertyTreeInput checkpoint.filename_prefix
+    checkpoint_filename =
+        checkpoint_database.get<std::string>("filename_prefix");
+    // PropertyTreeInput checkpoint.overwrite_files
+    checkpoint_overwrite = checkpoint_database.get<bool>("overwrite_files");
+  }
+
+  bool restart = false;
+  std::string restart_filename;
+  if (restart_optional_database)
+  {
+    restart = true;
+    auto restart_database = restart_optional_database.get();
+    // PropertyTreeInput restart.filename_prefix
+    restart_filename = restart_database.get<std::string>("filename_prefix");
+  }
+  for (unsigned int member = 0; member < local_ensemble_size; ++member)
   {
     // Resize the augmented ensemble block vector to have two blocks
     solution_augmented_ensemble[member].reinit(2);
@@ -1489,37 +1629,49 @@ run_ensemble(MPI_Comm const &communicator,
     solution_augmented_ensemble[member].collect_sizes();
 
     geometry_ensemble.push_back(std::make_unique<adamantine::Geometry<dim>>(
-        communicator, geometry_database));
+        local_communicator, geometry_database, units_optional_database));
 
     material_properties_ensemble.push_back(
-        std::make_unique<adamantine::MaterialProperty<dim, MemorySpaceType>>(
-            communicator, geometry_ensemble.back()->get_triangulation(),
+        std::make_unique<adamantine::MaterialProperty<
+            dim, p_order, MaterialStates, MemorySpaceType>>(
+            local_communicator, geometry_ensemble.back()->get_triangulation(),
             material_database));
 
     thermal_physics_ensemble[member] = initialize_thermal_physics<dim>(
-        fe_degree, quadrature_type, communicator, database_ensemble[member],
-        *geometry_ensemble[member], *material_properties_ensemble[member]);
+        fe_degree, quadrature_type, local_communicator,
+        database_ensemble[member], *geometry_ensemble[member],
+        *material_properties_ensemble[member]);
     heat_sources_ensemble[member] =
         thermal_physics_ensemble[member]->get_heat_sources();
 
-    thermal_physics_ensemble[member]->setup_dofs();
-    thermal_physics_ensemble[member]->update_material_deposition_orientation();
-    thermal_physics_ensemble[member]->compute_inverse_mass_matrix();
-
-    thermal_physics_ensemble[member]->initialize_dof_vector(
-        initial_temperature[member],
-        solution_augmented_ensemble[member].block(base_state));
-
+    if (restart == false)
+    {
+      thermal_physics_ensemble[member]->setup();
+      thermal_physics_ensemble[member]->initialize_dof_vector(
+          initial_temperature[member],
+          solution_augmented_ensemble[member].block(base_state));
+    }
+    else
+    {
+#ifdef ADAMANTINE_WITH_CALIPER
+      CALI_MARK_BEGIN("restart from file");
+#endif
+      thermal_physics_ensemble[member]->load_checkpoint(
+          restart_filename + '_' + std::to_string(member),
+          solution_augmented_ensemble[member].block(base_state));
+#ifdef ADAMANTINE_WITH_CALIPER
+      CALI_MARK_END("restart from file");
+#endif
+    }
     solution_augmented_ensemble[member].collect_sizes();
-
-    thermal_physics_ensemble[member]->get_state_from_material_properties();
 
     // For now we only output temperature
     post_processor_database.put("thermal_output", true);
     post_processor_ensemble.push_back(
         std::make_unique<adamantine::PostProcessor<dim>>(
-            communicator, post_processor_database,
-            thermal_physics_ensemble[member]->get_dof_handler(), member));
+            local_communicator, post_processor_database,
+            thermal_physics_ensemble[member]->get_dof_handler(),
+            first_local_member + member));
   }
 
   // PostProcessor for outputting the experimental data
@@ -1530,13 +1682,35 @@ run_ensemble(MPI_Comm const &communicator,
   post_processor_expt_database.put("filename_prefix", expt_file_prefix);
   post_processor_expt_database.put("thermal_output", true);
   adamantine::PostProcessor<dim> post_processor_expt(
-      communicator, post_processor_expt_database,
+      global_communicator, post_processor_expt_database,
       thermal_physics_ensemble[0]->get_dof_handler());
+
+  // ----- Initialize time and time stepping counters -----
+  unsigned int progress = 0;
+  unsigned int n_time_step = 0;
+  double time = 0.;
+  double activation_time_end = -1.;
+  if (restart == true)
+  {
+    if (global_rank == 0)
+    {
+      std::cout << "Restarting from file" << std::endl;
+    }
+    std::ifstream file{restart_filename + "_time.txt"};
+    boost::archive::text_iarchive ia{file};
+    ia >> time;
+    ia >> n_time_step;
+  }
+
+  // PropertyTreeInput geometry.deposition_time
+  double const activation_time =
+      geometry_database.get<double>("deposition_time", 0.);
 
   // ----- Read the experimental data -----
   std::vector<std::vector<double>> frame_time_stamps;
   std::unique_ptr<adamantine::ExperimentalData<dim>> experimental_data;
-  unsigned int experimental_frame_index = -1;
+  unsigned int experimental_frame_index =
+      std::numeric_limits<unsigned int>::max();
 
   if (experiment_optional_database)
   {
@@ -1548,7 +1722,7 @@ run_ensemble(MPI_Comm const &communicator,
 
     if (read_in_experimental_data)
     {
-      if (rank == 0)
+      if (global_rank == 0)
         std::cout << "Reading the experimental log file..." << std::endl;
 
       frame_time_stamps =
@@ -1563,7 +1737,7 @@ run_ensemble(MPI_Comm const &communicator,
           "Error: Experimental data parsing is activated, but "
           "the log shows zero data frames.");
 
-      if (rank == 0)
+      if (global_rank == 0)
         std::cout << "Done. Log entries found for " << frame_time_stamps.size()
                   << " camera(s), with " << frame_time_stamps[0].size()
                   << " frame(s)." << std::endl;
@@ -1587,24 +1761,33 @@ run_ensemble(MPI_Comm const &communicator,
                   thermal_physics_ensemble[0]->get_dof_handler()));
         }
       }
+
+      // Advance the experimental frame counter upon restart, if necessary
+      if (restart)
+      {
+        bool found_frame = false;
+        while (!found_frame)
+        {
+          if (frame_time_stamps[0][experimental_frame_index + 1] < time)
+          {
+            experimental_frame_index++;
+          }
+          else
+          {
+            found_frame = true;
+          }
+        }
+      }
     }
   }
 
-  // ----- Initialize time and time stepping counters -----
-  unsigned int progress = 0;
-  unsigned int n_time_step = 0;
-  double time = 0.;
-  double activation_time_end = -1.;
-  // PropertyTreeInput geometry.deposition_time
-  double const activation_time =
-      geometry_database.get<double>("deposition_time", 0.);
-
   // ----- Output the initial solution -----
-  std::unique_ptr<adamantine::MechanicalPhysics<dim, MemorySpaceType>>
+  std::unique_ptr<adamantine::MechanicalPhysics<dim, p_order, MaterialStates,
+                                                MemorySpaceType>>
       mechanical_physics;
   dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host>
       displacement;
-  for (unsigned int member = 0; member < ensemble_size; ++member)
+  for (unsigned int member = 0; member < local_ensemble_size; ++member)
   {
     output_pvtu(*post_processor_ensemble[member], n_time_step, time,
                 thermal_physics_ensemble[member],
@@ -1620,11 +1803,15 @@ run_ensemble(MPI_Comm const &communicator,
   // PropertyTreeInput refinement.time_steps_between_refinement
   unsigned int const time_steps_refinement =
       refinement_database.get("time_steps_between_refinement", 10);
-  double next_refinement_time = time;
   // PropertyTreeInput time_stepping.time_step
   double time_step = time_stepping_database.get<double>("time_step");
+  // PropertyTreeInput time_stepping.scan_path_for_duration
+  bool const scan_path_for_duration =
+      time_stepping_database.get("scan_path_for_duration", false);
   // PropertyTreeInput time_stepping.duration
-  double const duration = time_stepping_database.get<double>("duration");
+  double const duration = scan_path_for_duration
+                              ? std::numeric_limits<double>::max()
+                              : time_stepping_database.get<double>("duration");
   // PropertyTreeInput post_processor.time_steps_between_output
   unsigned int const time_steps_output =
       post_processor_database.get("time_steps_between_output", 1);
@@ -1641,8 +1828,8 @@ run_ensemble(MPI_Comm const &communicator,
   timers[adamantine::add_material_search].start();
   std::vector<std::vector<
       std::vector<typename dealii::DoFHandler<dim>::active_cell_iterator>>>
-      elements_to_activate_ensemble(ensemble_size);
-  for (unsigned int member = 0; member < ensemble_size; ++member)
+      elements_to_activate_ensemble(local_ensemble_size);
+  for (unsigned int member = 0; member < local_ensemble_size; ++member)
   {
     elements_to_activate_ensemble[member] =
         adamantine::get_elements_to_activate(
@@ -1652,7 +1839,7 @@ run_ensemble(MPI_Comm const &communicator,
   timers[adamantine::add_material_search].stop();
 
   // ----- Main time stepping loop -----
-  if (rank == 0)
+  if (global_rank == 0)
     std::cout << "Starting the main time stepping loop..." << std::endl;
 
 #ifdef ADAMANTINE_WITH_CALIPER
@@ -1667,18 +1854,21 @@ run_ensemble(MPI_Comm const &communicator,
       time_step = duration - time;
 
     // ----- Refine the mesh if necessary -----
-    // Refine the mesh after time_steps_refinement time steps or when time
-    // is greater or equal than the next predicted time for refinement. This
-    // is necessary when using an embedded method.
-    if (((n_time_step % time_steps_refinement) == 0) ||
-        (time >= next_refinement_time))
+    // Refine the mesh the first time we get in the loop and after
+    // time_steps_refinement time steps.
+    if ((n_time_step == 1) || ((n_time_step % time_steps_refinement) == 0))
     {
-      next_refinement_time = time + time_steps_refinement * time_step;
       timers[adamantine::refine].start();
+      double const next_refinement_time =
+          time + time_steps_refinement * time_step;
 
-      for (unsigned int member = 0; member < ensemble_size; ++member)
+      for (unsigned int member = 0; member < local_ensemble_size; ++member)
       {
-        refine_mesh(thermal_physics_ensemble[member],
+        // FIXME
+        std::unique_ptr<adamantine::MechanicalPhysics<
+            dim, p_order, MaterialStates, MemorySpaceType>>
+            dummy;
+        refine_mesh(thermal_physics_ensemble[member], dummy,
                     *material_properties_ensemble[member],
                     solution_augmented_ensemble[member].block(base_state),
                     heat_sources_ensemble[member], time, next_refinement_time,
@@ -1687,10 +1877,13 @@ run_ensemble(MPI_Comm const &communicator,
       }
 
       timers[adamantine::refine].stop();
-      if ((rank == 0) && (verbose_output == true))
-        std::cout << "n_dofs: "
+      if ((global_rank == 0) && (verbose_output == true))
+      {
+        std::cout << "n_time_step: " << n_time_step << " time: " << time
+                  << " n_dofs: "
                   << thermal_physics_ensemble[0]->get_dof_handler().n_dofs()
                   << std::endl;
+      }
     }
 
     // We use an epsilon to get the "expected" behavior when the deposition
@@ -1699,6 +1892,61 @@ run_ensemble(MPI_Comm const &communicator,
     timers[adamantine::add_material_activate].start();
     if (time > activation_time_end)
     {
+      // If we use scan_path_for_duration, we may need to read the scan path
+      // file once again.
+      if (scan_path_for_duration)
+      {
+        // Check if we have reached the end of current scan path.
+        bool need_updated_scan_path = false;
+        {
+          for (auto &source : heat_sources_ensemble[0])
+          {
+            if (time >
+                source->get_scan_path().get_segment_list().back().end_time)
+            {
+              need_updated_scan_path = true;
+              break;
+            }
+          }
+        }
+
+        if (need_updated_scan_path)
+        {
+          // Check if we have reached the end of the file. If not, read the
+          // updated scan path file. We assume that the scan paths are identical
+          // for all the heat sources and thus, we can use
+          // heat_sources_ensemble[0] to get the material deposition boxes and
+          // times. We still need every ensemble member to read the scan path in
+          // order to compute the correct heat sources.
+          bool scan_path_end = true;
+          for (unsigned int member = 0; member < local_ensemble_size; ++member)
+          {
+            for (auto &source : heat_sources_ensemble[member])
+            {
+              if (!source->get_scan_path().is_finished())
+              {
+                scan_path_end = false;
+                // This functions waits for the scan path file to be updated
+                // before reading the file.
+                source->get_scan_path().read_file();
+              }
+            }
+          }
+
+          // If we have reached the end of scan path file for all the heat
+          // sources, we just exit.
+          if (scan_path_end)
+          {
+            break;
+          }
+
+          std::tie(material_deposition_boxes, deposition_times, deposition_cos,
+                   deposition_sin) =
+              adamantine::create_material_deposition_boxes<dim>(
+                  geometry_database, heat_sources_ensemble[0]);
+        }
+      }
+
       double const eps = time_step / 1e12;
       auto activation_start =
           std::lower_bound(deposition_times.begin(), deposition_times.end(),
@@ -1711,7 +1959,7 @@ run_ensemble(MPI_Comm const &communicator,
                            activation_time_end) -
           deposition_times.begin();
       if (activation_start < activation_end)
-        for (unsigned int member = 0; member < ensemble_size; ++member)
+        for (unsigned int member = 0; member < local_ensemble_size; ++member)
         {
           // Compute the elements to activate.
           // TODO Right now, we compute the list of cells that get activated
@@ -1725,27 +1973,48 @@ run_ensemble(MPI_Comm const &communicator,
           // melted (may or may not be reasonable)
           std::vector<bool> has_melted(deposition_cos.size(), false);
 
-          thermal_physics_ensemble[member]->add_material(
+          thermal_physics_ensemble[member]->add_material_start(
               elements_to_activate, deposition_cos, deposition_sin, has_melted,
               activation_start, activation_end,
+              solution_augmented_ensemble[member].block(base_state));
+
+#ifdef ADAMANTINE_WITH_CALIPER
+          CALI_MARK_BEGIN("refine triangulation");
+#endif
+          dealii::DoFHandler<dim> &dof_handler =
+              thermal_physics_ensemble[member]->get_dof_handler();
+          dealii::parallel::distributed::Triangulation<dim> &triangulation =
+              dynamic_cast<dealii::parallel::distributed::Triangulation<dim> &>(
+                  const_cast<dealii::Triangulation<dim> &>(
+                      dof_handler.get_triangulation()));
+
+          triangulation.execute_coarsening_and_refinement();
+#ifdef ADAMANTINE_WITH_CALIPER
+          CALI_MARK_END("refine triangulation");
+#endif
+
+          thermal_physics_ensemble[member]->add_material_end(
               new_material_temperature[member],
               solution_augmented_ensemble[member].block(base_state));
 
           solution_augmented_ensemble[member].collect_sizes();
         }
 
-      if ((rank == 0) && (verbose_output == true) &&
+      if ((global_rank == 0) && (verbose_output == true) &&
           (activation_end - activation_start > 0))
-        std::cout << "n_dofs: "
+      {
+        std::cout << "n_dofs after cell activation: "
                   << thermal_physics_ensemble[0]->get_dof_handler().n_dofs()
                   << std::endl;
+      }
     }
     timers[adamantine::add_material_activate].stop();
 
     // ----- Evolve the solution by one time step -----
     double const old_time = time;
     timers[adamantine::evol_time].start();
-    for (unsigned int member = 0; member < ensemble_size; ++member)
+
+    for (unsigned int member = 0; member < local_ensemble_size; ++member)
     {
       time = thermal_physics_ensemble[member]->evolve_one_time_step(
           old_time, time_step,
@@ -1753,15 +2022,10 @@ run_ensemble(MPI_Comm const &communicator,
     }
     timers[adamantine::evol_time].stop();
 
-    // ----- Get the new time step size -----
-    // Needs to be the same for all ensemble members, obtained from the 0th
-    // member
-    time_step = thermal_physics_ensemble[0]->get_delta_t_guess();
-
     // ----- Perform data assimilation -----
     if (assimilate_data)
     {
-      for (unsigned int member = 0; member < ensemble_size; ++member)
+      for (unsigned int member = 0; member < local_ensemble_size; ++member)
       {
         thermal_physics_ensemble[member]->get_affine_constraints().distribute(
             solution_augmented_ensemble[member].block(base_state));
@@ -1786,21 +2050,20 @@ run_ensemble(MPI_Comm const &communicator,
         adamantine::ASSERT_THROW(
             frame_time > old_time || n_time_step == 1,
             "Unexpectedly missed a data assimilation frame.");
-        if (rank == 0)
+        if (global_rank == 0)
           std::cout << "Performing data assimilation at time " << time << "..."
                     << std::endl;
 
         // Print out the augmented parameters
-        if (rank == 0)
+        for (unsigned int member = 0; member < local_ensemble_size; ++member)
         {
-          for (unsigned int member = 0; member < ensemble_size; ++member)
-          {
-            std::cout << "Old parameters for member " << member << ": ";
-            for (auto param : solution_augmented_ensemble[member].block(1))
-              std::cout << param << " ";
+          std::cout << "Rank: " << global_rank
+                    << " | Old parameters for member "
+                    << first_local_member + member << ": ";
+          for (auto param : solution_augmented_ensemble[member].block(1))
+            std::cout << param << " ";
 
-            std::cout << std::endl;
-          }
+          std::cout << std::endl;
         }
 
         timers[adamantine::da_experimental_data].start();
@@ -1812,11 +2075,9 @@ run_ensemble(MPI_Comm const &communicator,
             thermal_physics_ensemble[0]->get_dof_handler();
         auto expt_to_dof_mapping = adamantine::get_expt_to_dof_mapping(
             points_values, thermal_dof_handler);
-        if (rank == 0)
-        {
-          std::cout << "Number expt sites mapped to DOFs: "
-                    << expt_to_dof_mapping.first.size() << std::endl;
-        }
+        std::cout << "Rank: " << global_rank
+                  << " | Number expt sites mapped to DOFs: "
+                  << expt_to_dof_mapping.first.size() << std::endl;
 #ifdef ADAMANTINE_WITH_CALIPER
         CALI_MARK_END("da_experimental_data");
 #endif
@@ -1835,144 +2096,192 @@ run_ensemble(MPI_Comm const &communicator,
               solution_augmented_ensemble[0].block(base_state));
           temperature_expt.add(1.0e10);
           adamantine::set_with_experimental_data(
-              communicator, points_values, expt_to_dof_mapping,
+              global_communicator, points_values, expt_to_dof_mapping,
               temperature_expt, verbose_output);
 
           thermal_physics_ensemble[0]->get_affine_constraints().distribute(
               temperature_expt);
-          post_processor_expt.write_thermal_output(
-              n_time_step, time, temperature_expt,
-              material_properties_ensemble[0]->get_state(),
-              material_properties_ensemble[0]->get_dofs_map(),
-              material_properties_ensemble[0]->get_dof_handler());
+          post_processor_expt
+              .template write_thermal_output<typename Kokkos::View<
+                  double **,
+                  typename MemorySpaceType::kokkos_space>::array_layout>(
+                  n_time_step, time, temperature_expt,
+                  material_properties_ensemble[0]->get_state(),
+                  material_properties_ensemble[0]->get_dofs_map(),
+                  material_properties_ensemble[0]->get_dof_handler());
         }
 
-        // NOTE: As is, this updates the dof mapping and covariance sparsity
-        // pattern for every data assimilation operation. Strictly, this is
-        // only necessary if the mesh changes (both updates) or the locations
-        // of observations changes (the dof mapping). In practice, changes to
-        // the mesh due to deposition likely cause the updates to be required
-        // for each operation. If this is a bottleneck, it can be fixed in the
-        // future.
-        timers[adamantine::da_dof_mapping].start();
-#ifdef ADAMANTINE_WITH_CALIPER
-        CALI_MARK_BEGIN("da_dof_mapping");
-#endif
-        data_assimilator.update_dof_mapping<dim>(expt_to_dof_mapping);
-#ifdef ADAMANTINE_WITH_CALIPER
-        CALI_MARK_END("da_dof_mapping");
-#endif
-        timers[adamantine::da_dof_mapping].stop();
-
-        timers[adamantine::da_covariance_sparsity].start();
-#ifdef ADAMANTINE_WITH_CALIPER
-        CALI_MARK_BEGIN("da_covariance_sparsity");
-#endif
-        data_assimilator.update_covariance_sparsity_pattern<dim>(
-            thermal_dof_handler,
-            solution_augmented_ensemble[0].block(augmented_state).size());
-#ifdef ADAMANTINE_WITH_CALIPER
-        CALI_MARK_END("da_covariance_sparsity");
-#endif
-        timers[adamantine::da_covariance_sparsity].start();
-
-        unsigned int experimental_data_size = points_values.values.size();
-
-        // Create the R matrix (the observation covariance matrix)
-        // PropertyTreeInput experiment.estimated_uncertainty
-        timers[adamantine::da_obs_covariance].start();
-#ifdef ADAMANTINE_WITH_CALIPER
-        CALI_MARK_BEGIN("da_obs_covariance");
-#endif
-        double variance_entries = experiment_optional_database.get().get(
-            "estimated_uncertainty", 0.0);
-        variance_entries = variance_entries * variance_entries;
-
-        dealii::SparsityPattern pattern(experimental_data_size,
-                                        experimental_data_size, 1);
-        for (unsigned int i = 0; i < experimental_data_size; ++i)
+        // Only continue data assimilation if some of the observations are
+        // mapped to DOFs
+        if (expt_to_dof_mapping.first.size() > 0)
         {
-          pattern.add(i, i);
-        }
-        pattern.compress();
-
-        dealii::SparseMatrix<double> R(pattern);
-        for (unsigned int i = 0; i < experimental_data_size; ++i)
-        {
-          R.add(i, i, variance_entries);
-        }
+          // NOTE: As is, this updates the dof mapping and covariance sparsity
+          // pattern for every data assimilation operation. Strictly, this is
+          // only necessary if the mesh changes (both updates) or the locations
+          // of observations changes (the dof mapping). In practice, changes to
+          // the mesh due to deposition likely cause the updates to be required
+          // for each operation. If this is a bottleneck, it can be fixed in the
+          // future.
+          timers[adamantine::da_dof_mapping].start();
 #ifdef ADAMANTINE_WITH_CALIPER
-        CALI_MARK_END("da_obs_covariance");
+          CALI_MARK_BEGIN("da_dof_mapping");
 #endif
-        timers[adamantine::da_obs_covariance].stop();
-
-        // Perform data assimilation to update the augmented state ensemble
-        timers[adamantine::da_update_ensemble].start();
+          data_assimilator.update_dof_mapping<dim>(expt_to_dof_mapping);
 #ifdef ADAMANTINE_WITH_CALIPER
-        CALI_MARK_BEGIN("da_update_ensemble");
+          CALI_MARK_END("da_dof_mapping");
 #endif
-        data_assimilator.update_ensemble(
-            communicator, solution_augmented_ensemble, points_values.values, R);
-#ifdef ADAMANTINE_WITH_CALIPER
-        CALI_MARK_END("da_update_ensemble");
-#endif
-        timers[adamantine::da_update_ensemble].stop();
+          timers[adamantine::da_dof_mapping].stop();
 
-        // Extract the parameters from the augmented state
-        for (unsigned int member = 0; member < ensemble_size; ++member)
-        {
-          for (unsigned int index = 0;
-               index < augmented_state_parameters.size(); ++index)
+          timers[adamantine::da_covariance_sparsity].start();
+#ifdef ADAMANTINE_WITH_CALIPER
+          CALI_MARK_BEGIN("da_covariance_sparsity");
+#endif
+          data_assimilator.update_covariance_sparsity_pattern<dim>(
+              thermal_dof_handler,
+              solution_augmented_ensemble[0].block(augmented_state).size());
+#ifdef ADAMANTINE_WITH_CALIPER
+          CALI_MARK_END("da_covariance_sparsity");
+#endif
+          timers[adamantine::da_covariance_sparsity].start();
+
+          unsigned int experimental_data_size = points_values.values.size();
+
+          // Create the R matrix (the observation covariance matrix)
+          // PropertyTreeInput experiment.estimated_uncertainty
+          timers[adamantine::da_obs_covariance].start();
+#ifdef ADAMANTINE_WITH_CALIPER
+          CALI_MARK_BEGIN("da_obs_covariance");
+#endif
+          double variance_entries = experiment_optional_database.get().get(
+              "estimated_uncertainty", 0.0);
+          variance_entries = variance_entries * variance_entries;
+
+          dealii::SparsityPattern pattern(experimental_data_size,
+                                          experimental_data_size, 1);
+          for (unsigned int i = 0; i < experimental_data_size; ++i)
           {
-            // FIXME: Need to consider how we want to generalize this. It
-            // could get unwieldy if we want to specify every parameter of an
-            // arbitrary number of beams.
-            if (augmented_state_parameters.at(index) ==
-                adamantine::AugmentedStateParameters::beam_0_absorption)
+            pattern.add(i, i);
+          }
+          pattern.compress();
+
+          dealii::SparseMatrix<double> R(pattern);
+          for (unsigned int i = 0; i < experimental_data_size; ++i)
+          {
+            R.add(i, i, variance_entries);
+          }
+#ifdef ADAMANTINE_WITH_CALIPER
+          CALI_MARK_END("da_obs_covariance");
+#endif
+          timers[adamantine::da_obs_covariance].stop();
+
+          // Perform data assimilation to update the augmented state ensemble
+          timers[adamantine::da_update_ensemble].start();
+#ifdef ADAMANTINE_WITH_CALIPER
+          CALI_MARK_BEGIN("da_update_ensemble");
+#endif
+          data_assimilator.update_ensemble(solution_augmented_ensemble,
+                                           points_values.values, R);
+#ifdef ADAMANTINE_WITH_CALIPER
+          CALI_MARK_END("da_update_ensemble");
+#endif
+          timers[adamantine::da_update_ensemble].stop();
+
+          // Extract the parameters from the augmented state
+          for (unsigned int member = 0; member < local_ensemble_size; ++member)
+          {
+            for (unsigned int index = 0;
+                 index < augmented_state_parameters.size(); ++index)
             {
-              database_ensemble[member].put(
-                  "sources.beam_0.absorption_efficiency",
-                  solution_augmented_ensemble[member].block(
-                      augmented_state)[index]);
+              // FIXME: Need to consider how we want to generalize this. It
+              // could get unwieldy if we want to specify every parameter of an
+              // arbitrary number of beams.
+              if (augmented_state_parameters.at(index) ==
+                  adamantine::AugmentedStateParameters::beam_0_absorption)
+              {
+                database_ensemble[member].put(
+                    "sources.beam_0.absorption_efficiency",
+                    solution_augmented_ensemble[member].block(
+                        augmented_state)[index]);
+              }
+              else if (augmented_state_parameters.at(index) ==
+                       adamantine::AugmentedStateParameters::beam_0_max_power)
+              {
+                database_ensemble[member].put(
+                    "sources.beam_0.max_power",
+                    solution_augmented_ensemble[member].block(
+                        augmented_state)[index]);
+              }
             }
-            else if (augmented_state_parameters.at(index) ==
-                     adamantine::AugmentedStateParameters::beam_0_max_power)
+          }
+
+          if (global_rank == 0)
+            std::cout << "Done." << std::endl;
+
+          // Print out the augmented parameters
+          if (solution_augmented_ensemble[0].block(1).size() > 0)
+          {
+            for (unsigned int member = 0; member < local_ensemble_size;
+                 ++member)
             {
-              database_ensemble[member].put(
-                  "sources.beam_0.max_power",
-                  solution_augmented_ensemble[member].block(
-                      augmented_state)[index]);
+              std::cout << "Rank: " << global_rank
+                        << " | New parameters for member "
+                        << first_local_member + member << ": ";
+              for (auto param : solution_augmented_ensemble[member].block(1))
+                std::cout << param << " ";
+
+              std::cout << std::endl;
             }
           }
         }
-
-        if (rank == 0)
-          std::cout << "Done." << std::endl;
-
-        // Print out the augmented parameters
-        if (rank == 0)
+        else
         {
-          for (unsigned int member = 0; member < ensemble_size; ++member)
-          {
-            std::cout << "New parameters for member " << member << ": ";
-            for (auto param : solution_augmented_ensemble[member].block(1))
-              std::cout << param << " ";
-
-            std::cout << std::endl;
-          }
+          if (global_rank == 0)
+            std::cout
+                << "WARNING: NO EXPERIMENTAL DATA POINTS MAPPED ONTO THE "
+                   "SIMULATION MESH. SKIPPING DATA ASSIMILATION OPERATION."
+                << std::endl;
         }
       }
 
       // Update the heat source in the ThermalPhysics objects
-      for (unsigned int member = 0; member < ensemble_size; ++member)
+      for (unsigned int member = 0; member < local_ensemble_size; ++member)
       {
         thermal_physics_ensemble[member]->update_physics_parameters(
             database_ensemble[member].get_child("sources"));
       }
     }
 
+    // ----- Checkpoint the ensemble members -----
+    if (n_time_step % time_steps_checkpoint == 0)
+    {
+#ifdef ADAMANTINE_WITH_CALIPER
+      CALI_MARK_BEGIN("save checkpoint");
+#endif
+      if (global_rank == 0)
+      {
+        std::cout << "Checkpoint reached" << std::endl;
+      }
+      std::string filename_prefix =
+          checkpoint_overwrite
+              ? checkpoint_filename
+              : checkpoint_filename + '_' + std::to_string(n_time_step);
+      for (unsigned int member = 0; member < local_ensemble_size; ++member)
+      {
+        thermal_physics_ensemble[member]->save_checkpoint(
+            filename_prefix + '_' + std::to_string(first_local_member + member),
+            solution_augmented_ensemble[member].block(base_state));
+      }
+      std::ofstream file{filename_prefix + "_time.txt"};
+      boost::archive::text_oarchive oa{file};
+      oa << time;
+      oa << n_time_step;
+#ifdef ADAMANTINE_WITH_CALIPER
+      CALI_MARK_END("save checkpoint");
+#endif
+    }
+
     // ----- Output progress on screen -----
-    if (rank == 0)
+    if (global_rank == 0)
     {
       double adim_time = time / (duration / 10.);
       double int_part = 0;
@@ -1987,7 +2296,7 @@ run_ensemble(MPI_Comm const &communicator,
     // ----- Output the solution -----
     if (n_time_step % time_steps_output == 0)
     {
-      for (unsigned int member = 0; member < ensemble_size; ++member)
+      for (unsigned int member = 0; member < local_ensemble_size; ++member)
       {
         thermal_physics_ensemble[member]->set_state_to_material_properties();
         output_pvtu(*post_processor_ensemble[member], n_time_step, time,
@@ -2005,7 +2314,7 @@ run_ensemble(MPI_Comm const &communicator,
   CALI_CXX_MARK_LOOP_END(main_loop_id);
 #endif
 
-  for (unsigned int member = 0; member < ensemble_size; ++member)
+  for (unsigned int member = 0; member < local_ensemble_size; ++member)
   {
     post_processor_ensemble[member]->write_pvd();
   }
@@ -2013,7 +2322,7 @@ run_ensemble(MPI_Comm const &communicator,
   // This is only used for integration test
   if constexpr (std::is_same_v<MemorySpaceType, dealii::MemorySpace::Host>)
   {
-    for (unsigned int member = 0; member < ensemble_size; ++member)
+    for (unsigned int member = 0; member < local_ensemble_size; ++member)
     {
       thermal_physics_ensemble[member]->get_affine_constraints().distribute(
           solution_augmented_ensemble[member].block(base_state));
@@ -2025,9 +2334,9 @@ run_ensemble(MPI_Comm const &communicator,
     // NOTE: Currently unused. Added for the future case where run_ensemble is
     // functional on the device.
     std::vector<dealii::LA::distributed::BlockVector<double>>
-        solution_augmented_ensemble_host(ensemble_size);
+        solution_augmented_ensemble_host(local_ensemble_size);
 
-    for (unsigned int member = 0; member < ensemble_size; ++member)
+    for (unsigned int member = 0; member < local_ensemble_size; ++member)
     {
       solution_augmented_ensemble[member].reinit(2);
 

@@ -1,24 +1,26 @@
-/* Copyright (c) 2016 - 2023, the adamantine authors.
+/* Copyright (c) 2016 - 2024, the adamantine authors.
  *
  * This file is subject to the Modified BSD License and may not be distributed
  * without copyright and license information. Please refer to the file LICENSE
  * for the text and further information on this license.
  */
 
+#include "MaterialStates.hh"
 #define BOOST_TEST_MODULE Integration_Data_Assimilation
 
 #include "../application/adamantine.hh"
+
+#include <boost/property_tree/info_parser.hpp>
 
 #include <filesystem>
 #include <fstream>
 
 #include "main.cc"
 
-BOOST_AUTO_TEST_CASE(integration_data_assimilation)
+namespace tt = boost::test_tools;
+
+double integration_da(MPI_Comm communicator, bool l2_norm)
 {
-
-  MPI_Comm communicator = MPI_COMM_WORLD;
-
   std::vector<adamantine::Timer> timers;
   initialize_timers(communicator, timers);
 
@@ -30,16 +32,30 @@ BOOST_AUTO_TEST_CASE(integration_data_assimilation)
   boost::property_tree::info_parser::read_info(filename, database);
 
   // Run the simulation
-  auto result = run_ensemble<3, dealii::MemorySpace::Host>(communicator,
-                                                           database, timers);
+  auto result =
+      run_ensemble<3, 1, adamantine::SolidLiquidPowder,
+                   dealii::MemorySpace::Host>(communicator, database, timers);
+
+  if (l2_norm)
+  {
+    double norm = -1.;
+    for (auto const &r : result)
+    {
+      norm = std::max(r.l2_norm(), norm);
+    }
+    return dealii::Utilities::MPI::max(norm, communicator);
+  }
 
   // Three ensemble members expected
-  BOOST_TEST(result.size() == 3);
+  unsigned int local_result_size = result.size();
+  unsigned int global_result_size =
+      dealii::Utilities::MPI::sum(local_result_size, communicator);
+  BOOST_TEST(global_result_size == 3);
 
   // Get the average minimum value for each ensemble member, which is very close
   // to the initial temperature
   double sum = 0.0;
-  for (unsigned int member = 0; member < result.size(); ++member)
+  for (unsigned int member = 0; member < local_result_size; ++member)
   {
     double min_val = std::numeric_limits<double>::max();
     for (unsigned int i = 0;
@@ -50,21 +66,31 @@ BOOST_AUTO_TEST_CASE(integration_data_assimilation)
     }
     sum += min_val;
   }
-  double average_minimum_value = sum / result.size();
+  double partial_average_minimum_value = sum / global_result_size;
+  double average_minimum_value =
+      dealii::Utilities::MPI::sum(partial_average_minimum_value, communicator);
 
   // Based on the experimental data, the expected temperature is ~200.0
   BOOST_TEST(average_minimum_value >= 200.0);
   BOOST_TEST(average_minimum_value < 300.0);
+  MPI_Barrier(communicator);
+
+  return average_minimum_value;
 }
 
-BOOST_AUTO_TEST_CASE(integration_3D_da_point_cloud_add_material)
+BOOST_AUTO_TEST_CASE(integration_data_assimilation)
 {
-  /*
-   * This integration test checks that the data assimilation using point cloud
-   * data works while adding material.
-   */
-  MPI_Comm communicator = MPI_COMM_WORLD;
+  bool l2_norm = dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD) > 3
+                     ? true
+                     : false;
+  double result_world = integration_da(MPI_COMM_WORLD, l2_norm);
+  double result_self = integration_da(MPI_COMM_SELF, l2_norm);
 
+  BOOST_TEST(result_world == result_self, tt::tolerance(1e-12));
+}
+
+double integration_da_point_cloud_add_mat(MPI_Comm communicator, bool l2_norm)
+{
   std::vector<adamantine::Timer> timers;
   initialize_timers(communicator, timers);
 
@@ -76,16 +102,30 @@ BOOST_AUTO_TEST_CASE(integration_3D_da_point_cloud_add_material)
   boost::property_tree::info_parser::read_info(filename, database);
 
   // Run the simulation
-  auto result = run_ensemble<3, dealii::MemorySpace::Host>(communicator,
-                                                           database, timers);
+  auto result =
+      run_ensemble<3, 1, adamantine::SolidLiquidPowder,
+                   dealii::MemorySpace::Host>(communicator, database, timers);
+
+  if (l2_norm)
+  {
+    double norm = -1.;
+    for (auto const &r : result)
+    {
+      norm = std::max(r.l2_norm(), norm);
+    }
+    return dealii::Utilities::MPI::max(norm, communicator);
+  }
 
   // Three ensemble members expected
-  BOOST_TEST(result.size() == 3);
+  unsigned int local_result_size = result.size();
+  unsigned int global_result_size =
+      dealii::Utilities::MPI::sum(local_result_size, communicator);
+  BOOST_TEST(global_result_size == 3);
 
   // Get the average minimum value for each ensemble member, which is very close
   // to the initial temperature
   double sum = 0.0;
-  for (unsigned int member = 0; member < result.size(); ++member)
+  for (unsigned int member = 0; member < local_result_size; ++member)
   {
     double min_val = std::numeric_limits<double>::max();
     for (unsigned int i = 0;
@@ -96,21 +136,37 @@ BOOST_AUTO_TEST_CASE(integration_3D_da_point_cloud_add_material)
     }
     sum += min_val;
   }
-  double average_minimum_value = sum / result.size();
+  double partial_average_minimum_value = sum / global_result_size;
+  double average_minimum_value =
+      dealii::Utilities::MPI::sum(partial_average_minimum_value, communicator);
 
   // Based on the experimental data, the expected temperature is ~200.0
   BOOST_CHECK(average_minimum_value >= 200.0);
   BOOST_CHECK(average_minimum_value < 300.0);
+  MPI_Barrier(communicator);
+
+  return average_minimum_value;
 }
 
-BOOST_AUTO_TEST_CASE(integration_3D_da_ray_add_material)
+BOOST_AUTO_TEST_CASE(integration_3D_da_point_cloud_add_material)
 {
   /*
    * This integration test checks that the data assimilation using point cloud
    * data works while adding material.
    */
-  MPI_Comm communicator = MPI_COMM_WORLD;
+  bool l2_norm = dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD) > 3
+                     ? true
+                     : false;
+  double result_world =
+      integration_da_point_cloud_add_mat(MPI_COMM_WORLD, l2_norm);
+  double result_self =
+      integration_da_point_cloud_add_mat(MPI_COMM_SELF, l2_norm);
 
+  BOOST_TEST(result_world == result_self, tt::tolerance(1e-12));
+}
+
+double integration_da_ray_add_mat(MPI_Comm communicator, bool l2_norm)
+{
   std::vector<adamantine::Timer> timers;
   initialize_timers(communicator, timers);
 
@@ -129,11 +185,25 @@ BOOST_AUTO_TEST_CASE(integration_3D_da_ray_add_material)
   database.put("experiment.format", "ray");
 
   // Run the simulation
-  auto result = run_ensemble<3, dealii::MemorySpace::Host>(communicator,
-                                                           database, timers);
+  auto result =
+      run_ensemble<3, 1, adamantine::SolidLiquidPowder,
+                   dealii::MemorySpace::Host>(communicator, database, timers);
+
+  if (l2_norm)
+  {
+    double norm = -1.;
+    for (auto const &r : result)
+    {
+      norm = std::max(r.l2_norm(), norm);
+    }
+    return dealii::Utilities::MPI::max(norm, communicator);
+  }
 
   // Three ensemble members expected
-  BOOST_TEST(result.size() == 3);
+  unsigned int local_result_size = result.size();
+  unsigned int global_result_size =
+      dealii::Utilities::MPI::sum(local_result_size, communicator);
+  BOOST_TEST(global_result_size == 3);
 
   // Get the average minimum value for each ensemble member, which is very close
   // to the initial temperature
@@ -149,9 +219,29 @@ BOOST_AUTO_TEST_CASE(integration_3D_da_ray_add_material)
     }
     sum += min_val;
   }
-  double average_minimum_value = sum / result.size();
+  double partial_average_minimum_value = sum / global_result_size;
+  double average_minimum_value =
+      dealii::Utilities::MPI::sum(partial_average_minimum_value, communicator);
 
   // Based on the experimental data, the expected temperature is ~200.0
   BOOST_CHECK(average_minimum_value >= 200.0);
   BOOST_CHECK(average_minimum_value < 300.0);
+  MPI_Barrier(communicator);
+
+  return average_minimum_value;
+}
+
+BOOST_AUTO_TEST_CASE(integration_3D_da_ray_add_material)
+{
+  /*
+   * This integration test checks that the data assimilation using point cloud
+   * data works while adding material.
+   */
+  bool l2_norm = dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD) > 3
+                     ? true
+                     : false;
+  double result_world = integration_da_ray_add_mat(MPI_COMM_WORLD, l2_norm);
+  double result_self = integration_da_ray_add_mat(MPI_COMM_SELF, l2_norm);
+
+  BOOST_TEST(result_world == result_self, tt::tolerance(1e-12));
 }

@@ -1,4 +1,4 @@
-/* Copyright (c) 2016 - 2023, the adamantine authors.
+/* Copyright (c) 2016 - 2024, the adamantine authors.
  *
  * This file is subject to the Modified BSD License and may not be distributed
  * without copyright and license information. Please refer to the file LICENSE
@@ -8,8 +8,11 @@
 #ifndef TYPES_HH
 #define TYPES_HH
 
+#include <Kokkos_NumericTraits.hpp>
+
 #include <array>
 #include <string>
+#include <unordered_map>
 
 namespace dealii
 {
@@ -25,22 +28,13 @@ namespace LA = LinearAlgebra;
 
 namespace adamantine
 {
-/**
- * Enum on the possible materials.
- */
-enum class MaterialState
-{
-  powder,
-  solid,
-  liquid,
-  SIZE
-};
 
-/**
- * Maximum different number of states a given material can be.
- */
-static unsigned int constexpr g_n_material_states =
-    static_cast<unsigned int>(MaterialState::SIZE);
+static std::unordered_map<std::string, double> g_unit_scaling_factor{
+    {"millimeter", 1e-3},        {"centimeter", 1e-2},
+    {"inch", 2.54e-2},           {"meter", 1.},
+    {"milliwatt", 1e-3},         {"watt", 1.},
+    {"millimeter/second", 1e-3}, {"centimer/second", 1e-2},
+    {"meter/second", 1.}};
 
 /**
  * Enum on the possible material properties that depend on the state of the
@@ -114,7 +108,7 @@ static unsigned int constexpr g_n_properties =
  * Array containing the possible material states.
  */
 static std::array<std::string, 3> const material_state_names = {
-    {"powder", "solid", "liquid"}};
+    {"solid", "liquid", "powder"}};
 
 /**
  * Array continaing the possible material properties that do not depend on the
@@ -180,18 +174,19 @@ struct axis;
 template <>
 struct axis<2>
 {
-  static int constexpr x = 0;
-  static int constexpr y = -1;
-  static int constexpr z = 1;
+  static unsigned int constexpr x = 0;
+  static unsigned int constexpr y =
+      Kokkos::Experimental::finite_max_v<unsigned int>;
+  static unsigned int constexpr z = 1;
 };
 
 // dim == 3 specialization
 template <>
 struct axis<3>
 {
-  static int constexpr x = 0;
-  static int constexpr y = 1;
-  static int constexpr z = 2;
+  static unsigned int constexpr x = 0;
+  static unsigned int constexpr y = 1;
+  static unsigned int constexpr z = 2;
 };
 
 /**

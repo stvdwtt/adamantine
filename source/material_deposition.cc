@@ -217,8 +217,8 @@ deposition_along_scan_path(boost::property_tree::ptree const &geometry_database,
           bounding_pt_a[d] = center[d] - 0.5 * box_size[d];
           bounding_pt_b[d] = center[d] + 0.5 * box_size[d];
         }
-        bounding_pt_a[dim - 1] = center[dim - 1];
-        bounding_pt_b[dim - 1] = center[dim - 1] + box_size[dim - 1];
+        bounding_pt_a[dim - 1] = center[dim - 1] - box_size[dim - 1];
+        bounding_pt_b[dim - 1] = center[dim - 1];
 
         std::get<tuple_box>(deposition_path)
             .push_back(std::make_pair(bounding_pt_a, bounding_pt_b));
@@ -382,4 +382,28 @@ template std::vector<
 get_elements_to_activate(
     dealii::DoFHandler<3> const &dof_handler,
     std::vector<dealii::BoundingBox<3>> const &material_deposition_boxes);
+
+template std::tuple<std::vector<dealii::BoundingBox<2, double>>,
+                    std::vector<double>, std::vector<double>,
+                    std::vector<double>>
+merge_deposition_paths(
+    std::vector<std::tuple<std::vector<dealii::BoundingBox<2, double>>,
+                           std::vector<double>, std::vector<double>,
+                           std::vector<double>>> const &deposition_paths);
+template std::tuple<std::vector<dealii::BoundingBox<3, double>>,
+                    std::vector<double>, std::vector<double>,
+                    std::vector<double>>
+merge_deposition_paths(
+    std::vector<std::tuple<std::vector<dealii::BoundingBox<3, double>>,
+                           std::vector<double>, std::vector<double>,
+                           std::vector<double>>> const &deposition_paths);
+
+template std::tuple<std::vector<dealii::BoundingBox<2>>, std::vector<double>,
+                    std::vector<double>, std::vector<double>>
+deposition_along_scan_path(boost::property_tree::ptree const &geometry_database,
+                           ScanPath const &scan_path);
+template std::tuple<std::vector<dealii::BoundingBox<3>>, std::vector<double>,
+                    std::vector<double>, std::vector<double>>
+deposition_along_scan_path(boost::property_tree::ptree const &geometry_database,
+                           ScanPath const &scan_path);
 } // namespace adamantine

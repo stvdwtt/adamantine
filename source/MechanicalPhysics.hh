@@ -1,4 +1,4 @@
-/* Copyright (c) 2022 - 2023, the adamantine authors.
+/* Copyright (c) 2022 - 2024, the adamantine authors.
  *
  * This file is subject to the Modified BSD License and may not be distributed
  * without copyright and license information. Please refer to the file LICENSE
@@ -13,12 +13,15 @@
 
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/base/symmetric_tensor.h>
+#include <deal.II/distributed/cell_data_transfer.templates.h>
+#include <deal.II/distributed/solution_transfer.h>
 #include <deal.II/fe/fe_system.h>
 #include <deal.II/hp/fe_collection.h>
 
 namespace adamantine
 {
-template <int dim, typename MemorySpaceType>
+template <int dim, int p_order, typename MaterialStates,
+          typename MemorySpaceType>
 class MechanicalPhysics
 {
 public:
@@ -27,7 +30,8 @@ public:
    */
   MechanicalPhysics(MPI_Comm const &communicator, unsigned int const fe_degree,
                     Geometry<dim> &geometry,
-                    MaterialProperty<dim, MemorySpaceType> &material_properties,
+                    MaterialProperty<dim, p_order, MaterialStates,
+                                     MemorySpaceType> &material_properties,
                     std::vector<double> const &initial_temperatures);
 
   /**
@@ -48,6 +52,18 @@ public:
       std::vector<bool> const &has_melted,
       std::vector<std::shared_ptr<BodyForce<dim>>> const &body_forces =
           std::vector<std::shared_ptr<BodyForce<dim>>>());
+
+  /**
+   * Prepare displacement and stresses to be communicated when activating cells
+   * or refining the mesh.
+   */
+  void prepare_transfer_mpi();
+
+  /**
+   * Complete transfer of displacment and stress data after activating cells or
+   * refining the mesh.
+   */
+  void complete_transfer_mpi();
 
   /**
    * Solve the mechanical problem and return the displacement.
@@ -85,7 +101,8 @@ private:
   /**
    * Associated MaterialProperty.
    */
-  MaterialProperty<dim, MemorySpaceType> &_material_properties;
+  MaterialProperty<dim, p_order, MaterialStates, MemorySpaceType>
+      &_material_properties;
   /**
    * Associated FECollection.
    */
@@ -105,7 +122,8 @@ private:
   /**
    * Pointer to the MechanicalOperator
    */
-  std::unique_ptr<MechanicalOperator<dim, MemorySpaceType>>
+  std::unique_ptr<
+      MechanicalOperator<dim, p_order, MaterialStates, MemorySpaceType>>
       _mechanical_operator;
   /**
    * Whether to include a gravitional body force in the calculation.
@@ -132,25 +150,53 @@ private:
    * Back stress tensor at each (cell, quadrature point).
    */
   std::vector<std::vector<dealii::SymmetricTensor<2, dim>>> _back_stress;
+
+  /**
+   * Solution transfer object used for updating _old_displacement when the
+   * triangulation is updated when adding material
+   */
+  dealii::parallel::distributed::SolutionTransfer<
+      dim, dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host>>
+      _solution_transfer;
+
+  /**
+   * Cell data transfer object used for updating _plastic_internal_variable,
+   * _stress, and _back_stress when the triangulation is updated when adding
+   * material
+   */
+  dealii::parallel::distributed::CellDataTransfer<
+      dim, dim, std::vector<std::vector<double>>>
+      _cell_data_transfer;
+
+  /**
+   * Temporary storaged used by _cell_data_transfer
+   */
+  std::vector<std::vector<double>> _data_to_transfer;
 };
 
-template <int dim, typename MemorySpaceType>
+template <int dim, int p_order, typename MaterialStates,
+          typename MemorySpaceType>
 inline dealii::DoFHandler<dim> &
-MechanicalPhysics<dim, MemorySpaceType>::get_dof_handler()
+MechanicalPhysics<dim, p_order, MaterialStates,
+                  MemorySpaceType>::get_dof_handler()
 {
   return _dof_handler;
 }
 
-template <int dim, typename MemorySpaceType>
+template <int dim, int p_order, typename MaterialStates,
+          typename MemorySpaceType>
 inline dealii::AffineConstraints<double> &
-MechanicalPhysics<dim, MemorySpaceType>::get_affine_constraints()
+MechanicalPhysics<dim, p_order, MaterialStates,
+                  MemorySpaceType>::get_affine_constraints()
 {
   return _affine_constraints;
 }
 
-template <int dim, typename MemorySpaceType>
+template <int dim, int p_order, typename MaterialStates,
+          typename MemorySpaceType>
 inline std::vector<std::vector<dealii::SymmetricTensor<2, dim>>> &
-MechanicalPhysics<dim, MemorySpaceType>::get_stress_tensor()
+MechanicalPhysics<dim, p_order, MaterialStates,
+                  MemorySpaceType>::get_stress_tensor()
 {
   return _stress;
 }
